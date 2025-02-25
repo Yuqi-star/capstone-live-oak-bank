@@ -1,0 +1,49 @@
+import requests
+import pandas as pd
+
+# Replace with your SerpApi API key
+API_KEY = "d0905f197fe0b681b5f19abeb080a3f219090fb66ade9224f3b5ac165718f925"
+
+# Load the borrower names from a CSV file
+csv_file_path = "/Users/heyahe/Library/Mobile Documents/com~apple~CloudDocs/Duke/live oak bank/Live_Oak_Bank_Borrowers.csv"  # Replace with the path to your CSV file
+df = pd.read_csv(csv_file_path)
+
+# Extract borrower names
+borrower_names = df['BorrName'].dropna().unique()
+
+# Function to get news articles for a borrower using SerpApi Google News API
+def get_news_for_borrower(borrower_name, api_key):
+    url = "https://serpapi.com/search"
+    params = {
+        "engine": "google_news",
+        "q": borrower_name,
+        "api_key": api_key,
+        "hl": "en",
+        "gl": "us"
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        return response.json().get("news_results", [])
+    else:
+        print(f"Failed to fetch news for {borrower_name}. Status code: {response.status_code}")
+        return []
+
+# Collect news articles for borrowers
+news_data = []
+for borrower in borrower_names:
+    print(f"Fetching news for: {borrower}")
+    articles = get_news_for_borrower(borrower, API_KEY)
+    for article in articles:
+        news_data.append({
+            "Borrower": borrower,
+            "Title": article.get("title"),
+            "Snippet": article.get("snippet"),
+            "Published Date": article.get("date"),
+            "Link": article.get("link")
+        })
+
+# Convert the news data into a DataFrame and save to CSV
+news_df = pd.DataFrame(news_data)
+output_file = "Borrower_News_Articles.csv"
+news_df.to_csv(output_file, index=False)
+print(f"News articles saved to {output_file}")
