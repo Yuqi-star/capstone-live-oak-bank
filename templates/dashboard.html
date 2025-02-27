@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Oak NewsDesk - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ now.timestamp() }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header>
+            <div class="logo-section">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Live Oak NewsDesk" class="logo">
+                <h1>Live Oak NewsDesk</h1>
+            </div>
+            <div class="user-section">
+                <span>Welcome, {{ username }}!</span>
+                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+            </div>
+        </header>
+
+        <div class="content-wrapper">
+            <div class="filters-section">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search for industry news..." value="{{ search_query }}">
+                </div>
+                
+                <div class="industries-filter">
+                    <h3>Industries</h3>
+                    <div class="add-industry">
+                        <input type="text" id="newIndustry" placeholder="Add new industry...">
+                        <button id="addIndustryBtn">Add</button>
+                    </div>
+                    <div class="select-all-option">
+                        <label>
+                            <input type="checkbox" id="selectAll">
+                            Select All Industries
+                        </label>
+                    </div>
+                    <div class="industry-checkboxes">
+                        {% for industry in industries %}
+                        <label class="industry-checkbox">
+                            <input type="checkbox" name="industry" value="{{ industry }}"
+                                   {% if industry in selected_industries %}checked{% endif %}>
+                            {{ industry }}
+                            {% if industry not in default_industries %}
+                            <button class="delete-industry" data-industry="{{ industry }}">×</button>
+                            {% endif %}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="news-section">
+                <h2>Latest Market News</h2>
+                <div class="news-container">
+                    {% for article in news %}
+                    <div class="news-card">
+                        <div class="news-header">
+                            <a href="{{ article.url }}" target="_blank" class="news-title">{{ article.title }}</a>
+                            <div class="news-time" data-time="{{ article.time_published }}">
+                                {{ article.time_published }}
+                            </div>
+                        </div>
+                        <p class="news-summary">{{ article.summary }}</p>
+                        <div class="news-meta">
+                            <div class="sentiment-score 
+                                {% if article.sentiment > 0.2 %}positive
+                                {% elif article.sentiment < -0.2 %}negative
+                                {% else %}neutral{% endif %}"
+                                {% if article.sentiment|abs > 0.5 %}
+                                    data-level="high"
+                                {% elif article.sentiment|abs > 0.2 %}
+                                    data-level="medium"
+                                {% else %}
+                                    data-level="low"
+                                {% endif %}
+                            >
+                                Sentiment: {{ "%.2f"|format(article.sentiment) }}
+                            </div>
+                            <div class="news-topics">
+                                {% for topic in article.industries %}
+                                <span class="topic-tag" 
+                                      data-type="{{ topic.lower() }}"
+                                      onclick="handleTopicClick('{{ topic }}')">
+                                    {{ topic }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}?v={{ now.timestamp() }}"></script>
+</body>
+</html>

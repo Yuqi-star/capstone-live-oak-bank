@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Oak NewsDesk - Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="left-section">
+            <div class="logo-section">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Live Oak NewsDesk" class="logo">
+                <h1>Live Oak NewsDesk</h1>
+            </div>
+            <h2>Real-Time Market Insights for Informed Conversations</h2>
+        </div>
+        
+        <div class="right-section">
+            <div class="auth-form">
+                <h2>Sign In to Your Account</h2>
+                {% if error %}
+                <div class="error-message">{{ error }}</div>
+                {% endif %}
+                <form method="POST">
+                    <div class="form-group">
+                        <input type="text" name="username" placeholder="Your username" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="password" name="password" placeholder="Your password" required>
+                    </div>
+                    <div class="form-group remember-me">
+                        <label>
+                            <input type="checkbox" name="remember" id="remember">
+                            Keep me signed in
+                        </label>
+                    </div>
+                    <button type="submit">Sign in</button>
+                </form>
+                <div class="auth-links">
+                    Don't have an account? <a href="{{ url_for('register') }}">Register</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

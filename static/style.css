@@ -1,0 +1,463 @@
+:root {
+    /* Color variables */
+    --primary-color: #4A76C7;
+    --secondary-color: #ffffff;
+    --background-color: #f1f5f9;
+    --card-background: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --positive-color: #16a34a;
+    --negative-color: #dc2626;
+    --neutral-color: #64748b;
+    --border-radius: 8px;
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
+/* Base styles */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-primary);
+}
+
+/* Layout containers */
+.dashboard-container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Header styles */
+header {
+    flex: 0 0 auto; /* 不参与滚动 */
+    padding: 1rem 0;
+    margin-bottom: 1rem;
+    display: flex;           /* 添加 */
+    justify-content: space-between;  /* 添加 */
+    align-items: center;     /* 添加 */
+}
+
+/* Logo section */
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logo {
+    height: 40px;
+    width: auto;
+}
+
+/* User section */
+.user-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-left: auto;  /* 添加，确保靠右 */
+}
+
+/* Logout button */
+.logout-btn {
+    padding: 0.5rem 1rem;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.logout-btn:hover {
+    background-color: #3b5998;
+}
+
+/* Content wrapper */
+.content-wrapper {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(300px, 1fr) 3fr;
+    gap: 1.5rem;
+    min-height: 0; /* 防止 Grid 内容溢出 */
+}
+
+/* Left sidebar filters */
+.filters-section {
+    background: var(--card-background);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    height: fit-content;
+    max-height: calc(100vh - 6rem); /* 留出顶部和底部空间 */
+    position: sticky;
+    top: 1.5rem;
+    overflow: hidden; /* 防止内容溢出 */
+}
+
+/* Search box */
+.search-box {
+    flex: 0 0 auto;
+    position: relative;
+}
+
+.search-box-wrapper {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: var(--border-radius);
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+.search-box input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+.add-industry-btn {
+    padding: 0.75rem 1rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: background-color 0.2s;
+}
+
+.add-industry-btn:hover {
+    background: #3b5998;
+}
+
+.add-industry-btn.disabled {
+    background: #cbd5e1;
+    cursor: not-allowed;
+}
+
+/* Industries filter */
+.industries-filter {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Select all option */
+.select-all-option {
+    flex: 0 0 auto;
+    padding: 0.75rem;
+    background: #f0f7ff;
+    border-radius: var(--border-radius);
+    border: 1px solid #bae6fd;
+}
+
+/* Industry checkboxes container */
+.industry-checkboxes {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Individual checkbox item */
+.industry-checkbox {
+    padding: 0.75rem;
+    background: #f8fafc;
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: background-color 0.2s;
+}
+
+/* News section */
+.news-section {
+    background: var(--card-background);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    height: fit-content;
+    min-height: calc(100vh - 6rem);
+    overflow: hidden; /* 防止内容溢出 */
+}
+
+/* News container */
+.news-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+/* News card */
+.news-card {
+    padding: 1.5rem;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* News header section */
+.news-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+}
+
+.news-title {
+    flex: 1;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.5;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.news-title:hover {
+    color: var(--primary-color);
+}
+
+/* News time display */
+.news-time {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+/* News summary */
+.news-summary {
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin: 0;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+/* News metadata */
+.news-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+}
+
+/* Topic tags container */
+.news-topics {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* Sentiment score indicators */
+.sentiment-score {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+}
+
+/* 正面情感，绿色系，深浅不同 */
+.sentiment-score.positive[data-level="high"] {
+    background-color: #bbf7d0;  /* 深绿背景 */
+    color: #15803d;  /* 深绿文字 */
+}
+
+.sentiment-score.positive[data-level="medium"] {
+    background-color: #dcfce7;  /* 中绿背景 */
+    color: #16a34a;  /* 中绿文字 */
+}
+
+.sentiment-score.positive[data-level="low"] {
+    background-color: #f0fdf4;  /* 浅绿背景 */
+    color: #22c55e;  /* 浅绿文字 */
+}
+
+/* 负面情感，红色系，深浅不同 */
+.sentiment-score.negative[data-level="high"] {
+    background-color: #fecaca;  /* 深红背景 */
+    color: #b91c1c;  /* 深红文字 */
+}
+
+.sentiment-score.negative[data-level="medium"] {
+    background-color: #fee2e2;  /* 中红背景 */
+    color: #dc2626;  /* 中红文字 */
+}
+
+.sentiment-score.negative[data-level="low"] {
+    background-color: #fef2f2;  /* 浅红背景 */
+    color: #ef4444;  /* 浅红文字 */
+}
+
+/* 中性情感，灰色系 */
+.sentiment-score.neutral {
+    background-color: #f1f5f9;
+    color: #64748b;
+}
+
+/* Topic tags */
+.topic-tag {
+    padding: 0.25rem 0.75rem;
+    background: #f0f9ff;
+    color: #0369a1;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* 移除所有主题标签的图标 */
+.topic-tag::before {
+    content: none !important;  /* 移除所有图标 */
+}
+
+/* 移除不同类型主题的特殊样式，统一使用基本样式 */
+.topic-tag[data-type="earnings"],
+.topic-tag[data-type="technology"],
+.topic-tag[data-type="finance"],
+.topic-tag[data-type="market"] {
+    background: #f0f9ff;
+    color: #0369a1;
+    border-color: #bae6fd;
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+    .content-wrapper {
+        grid-template-columns: minmax(250px, 1fr) 2fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 1rem;
+    }
+
+    .content-wrapper {
+        grid-template-columns: 1fr;
+    }
+
+    .filters-section {
+        position: relative;
+        top: 0;
+        max-height: none;
+    }
+
+    .news-section {
+        min-height: 0;
+    }
+    
+    .news-header {
+        flex-direction: column;
+    }
+    
+    .news-meta {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* 确保最后一个卡片有足够空间 */
+.news-card:last-child {
+    margin-bottom: 0.5rem;
+}
+
+/* 搜索框按钮样式 */
+.add-to-tracked-btn {
+    margin-top: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 0.875rem;
+    width: 100%;
+    transition: background-color 0.2s;
+}
+
+.add-to-tracked-btn:hover {
+    background: #3b5998;
+}
+
+/* Search suggestions */
+.search-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    z-index: 10;
+    margin-top: 0.25rem;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s;
+}
+
+.search-suggestions.active {
+    max-height: 200px;
+    border: 1px solid #e2e8f0;
+}
+
+.suggestion-item {
+    padding: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.1s;
+}
+
+.suggestion-item:hover {
+    background-color: #f8fafc;
+}
+
+.suggestion-item .add-to-tracked {
+    padding: 0.25rem 0.5rem;
+    border: none;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+
+.suggestion-item .add-to-tracked:hover {
+    background: #3b5998;
+}
+
+/* Temporarily make hidden elements visible for debugging */
+.search-suggestions {
+    max-height: 200px !important;
+    border: 1px solid red !important;
+}
+
