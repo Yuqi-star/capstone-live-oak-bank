@@ -37,6 +37,28 @@ def save_cache(data):
     except Exception as e:
         logger.error(f"Error saving cache: {e}")
 
+def format_timestamp(timestamp_str):
+    """将API返回的时间戳格式化为易读格式"""
+    if not timestamp_str:
+        return "N/A"
+    
+    try:
+        # 解析格式如 20250227T164413
+        year = int(timestamp_str[0:4])
+        month = int(timestamp_str[4:6])
+        day = int(timestamp_str[6:8])
+        hour = int(timestamp_str[9:11])
+        minute = int(timestamp_str[11:13])
+        
+        # 创建datetime对象
+        dt = datetime(year, month, day, hour, minute)
+        
+        # 返回格式化后的字符串，例如 "Feb 27, 2025 4:44 PM"
+        return dt.strftime("%b %d, %Y %I:%M %p")
+    except Exception as e:
+        logger.error(f"Error formatting timestamp {timestamp_str}: {e}")
+        return timestamp_str
+
 def get_news(industries: Optional[List[str]] = None, search_query: Optional[str] = None):
     try:
         # First try to load data from cache
@@ -55,13 +77,10 @@ def get_news(industries: Optional[List[str]] = None, search_query: Optional[str]
                        f"limit=500&"  # 增加到500条
                        f"time_from={time_from}")
             
-            # If there's a search query, add it as keywords
+            # 不在API请求中添加行业过滤，而是在后处理中进行过滤
+            # 这样可以获取所有新闻，然后根据选中的行业进行精确过滤
             if search_query:
                 base_url += f"&keywords={search_query}"
-            # If there are selected industries, add them to search parameters
-            elif industries and len(industries) > 0:
-                industry_keywords = " OR ".join(industries)
-                base_url += f"&keywords={industry_keywords}"
             
             logger.info(f"Making API request to: {base_url}")
             response = requests.get(base_url)
@@ -98,35 +117,39 @@ def get_news(industries: Optional[List[str]] = None, search_query: Optional[str]
         # Process news data
         news_list = []
         
+        # 将所有行业转换为小写，用于不区分大小写的匹配
+        industries_lower = [industry.lower() for industry in industries] if industries else []
+        search_query_lower = search_query.lower() if search_query else None
+        
         for article in all_news:
             try:
+                # 获取文章的行业/主题
                 article_industries = [topic.get('topic', '').strip() if isinstance(topic, dict) else topic.strip() 
                                    for topic in article.get("topics", [])]
                 article_title = article.get("title", "").lower()
                 article_summary = article.get("summary", "").lower()
                 
-                # 修改匹配逻辑
+                # 默认不匹配
                 matched = False
                 
-                # 如果有选择行业，根据行业过滤
-                if industries:
-                    for industry in industries:
-                        industry_lower = industry.lower()
+                # 如果有搜索查询，优先按搜索查询过滤
+                if search_query_lower:
+                    if (search_query_lower in article_title or 
+                        search_query_lower in article_summary or
+                        any(search_query_lower in topic.lower() for topic in article_industries)):
+                        matched = True
+                # 否则，如果有选择行业，严格按照选中的行业过滤
+                elif industries and industries_lower:
+                    for industry in industries_lower:
                         # 检查标题、摘要和主题中是否包含行业关键词
-                        if (industry_lower in article_title or
-                            industry_lower in article_summary or
-                            any(industry_lower in topic.lower() for topic in article_industries)):
+                        if (industry in article_title or
+                            industry in article_summary or
+                            any(industry in topic.lower() for topic in article_industries)):
                             matched = True
                             break
                 else:
-                    # 如果没有选择任何行业，显示所有新闻
-                    matched = True
-                
-                # 如果有搜索词，进一步过滤
-                if matched and search_query:
-                    search_terms = search_query.lower().split()
-                    matched = any(term in article_title or term in article_summary 
-                                for term in search_terms)
+                    # 如果没有选择任何行业也没有搜索查询，显示一个特殊消息
+                    matched = False
                 
                 if matched:
                     sentiment_score = article.get("overall_sentiment_score", 0)
@@ -137,7 +160,9 @@ def get_news(industries: Optional[List[str]] = None, search_query: Optional[str]
                         "sentiment": sentiment_score,
                         "sentiment_abs": abs(sentiment_score),
                         "industries": article_industries,  # 使用处理过的主题列表
-                        "time_published": article.get("time_published", "")
+                        "time_published": article.get("time_published", ""),
+                        "raw_time_published": article.get("time_published", ""),
+                        "formatted_time": format_timestamp(article.get("time_published", ""))
                     }
                     news_list.append(news_item)
                     
@@ -149,15 +174,26 @@ def get_news(industries: Optional[List[str]] = None, search_query: Optional[str]
         news_list.sort(key=lambda x: (-x["sentiment_abs"], x["time_published"]), reverse=True)
         
         if not news_list:
-            return [{
-                "title": "No news available",
-                "summary": "Please select at least one industry to view news." if not industries else "No news found for the selected industries.",
-                "url": "",  # 移除链接
-                "sentiment": 0,
-                "sentiment_abs": 0,
-                "industries": [],
-                "time_published": ""
-            }]
+            if search_query:
+                return [{
+                    "title": "No news available",
+                    "summary": f"No news found for '{search_query}'. Try a different search term or add it as a new industry.",
+                    "url": "",
+                    "sentiment": 0,
+                    "sentiment_abs": 0,
+                    "industries": [],
+                    "time_published": ""
+                }]
+            else:
+                return [{
+                    "title": "No news available",
+                    "summary": "Please select at least one industry to view news." if not industries or len(industries) == 0 else "No news found for the selected industries.",
+                    "url": "",
+                    "sentiment": 0,
+                    "sentiment_abs": 0,
+                    "industries": [],
+                    "time_published": ""
+                }]
             
         return news_list
         

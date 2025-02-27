@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Oak NewsDesk - Credit Risk Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ now.timestamp() }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header>
+            <div class="logo-section">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Live Oak NewsDesk" class="logo">
+                <h1>Live Oak NewsDesk</h1>
+            </div>
+            <div class="user-section">
+                <nav class="main-nav">
+                    <ul>
+                        <li><a href="{{ url_for('dashboard') }}" class="nav-link"><i class="fas fa-newspaper"></i> News</a></li>
+                        <li><a href="{{ url_for('companies') }}" class="nav-link active"><i class="fas fa-building"></i> Credit Risk</a></li>
+                    </ul>
+                </nav>
+                <span><i class="fas fa-user-circle"></i> Welcome, {{ username }}!</span>
+                <a href="{{ url_for('logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </header>
+
+        <div class="risk-dashboard-wrapper">
+            <!-- 风险概览卡片 -->
+            <div class="risk-overview">
+                <div class="risk-card high-risk">
+                    <div class="risk-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="risk-info">
+                        <h3>High Risk</h3>
+                        <p class="risk-count">{{ companies|selectattr('risk_level', 'equalto', 'high')|list|length }}</p>
+                    </div>
+                </div>
+                <div class="risk-card medium-risk">
+                    <div class="risk-icon">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    <div class="risk-info">
+                        <h3>Medium Risk</h3>
+                        <p class="risk-count">{{ companies|selectattr('risk_level', 'equalto', 'medium')|list|length }}</p>
+                    </div>
+                </div>
+                <div class="risk-card low-risk">
+                    <div class="risk-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="risk-info">
+                        <h3>Low Risk</h3>
+                        <p class="risk-count">{{ companies|selectattr('risk_level', 'equalto', 'low')|list|length }}</p>
+                    </div>
+                </div>
+                <div class="risk-card total-companies">
+                    <div class="risk-icon">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <div class="risk-info">
+                        <h3>Total Companies</h3>
+                        <p class="risk-count">{{ companies|length }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 搜索和筛选区域 -->
+            <div class="risk-controls">
+                <div class="search-container">
+                    <div class="search-box">
+                        <input type="text" id="companySearchInput" name="search" placeholder="Search for companies..." value="{{ search_query }}">
+                        <button id="companySearchButton" class="search-button">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="risk-filters">
+                    <label class="risk-filter-radio">
+                        <input type="radio" name="risk-filter" value="all" {% if not risk_filter %}checked{% endif %}>
+                        <span class="risk-filter-btn {% if not risk_filter %}active{% endif %}">All</span>
+                    </label>
+                    <label class="risk-filter-radio">
+                        <input type="radio" name="risk-filter" value="high" {% if risk_filter == 'high' %}checked{% endif %}>
+                        <span class="risk-filter-btn high {% if risk_filter == 'high' %}active{% endif %}">High Risk</span>
+                    </label>
+                    <label class="risk-filter-radio">
+                        <input type="radio" name="risk-filter" value="medium" {% if risk_filter == 'medium' %}checked{% endif %}>
+                        <span class="risk-filter-btn medium {% if risk_filter == 'medium' %}active{% endif %}">Medium Risk</span>
+                    </label>
+                    <label class="risk-filter-radio">
+                        <input type="radio" name="risk-filter" value="low" {% if risk_filter == 'low' %}checked{% endif %}>
+                        <span class="risk-filter-btn low {% if risk_filter == 'low' %}active{% endif %}">Low Risk</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 公司风险表格 -->
+            <div class="risk-table-container">
+                <h2><i class="fas fa-chart-line"></i> Credit Risk Monitoring</h2>
+                
+                {% if companies %}
+                <div class="risk-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Credit Rating</th>
+                                <th>PD</th>
+                                <th>Expected Loss</th>
+                                <th>Current Ratio</th>
+                                <th>ROE</th>
+                                <th>Leverage Ratio</th>
+                                <th>Risk Level</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for company in companies %}
+                            <tr class="risk-level-{{ company.risk_level }} company-row" data-company-id="{{ loop.index }}">
+                                <td class="company-name">{{ company.Company }}</td>
+                                <td class="credit-rating">{{ company['Credit Rating'] }}</td>
+                                <td class="pd">{{ "%.2f"|format(company['Probability of Default'] * 100) }}%</td>
+                                <td class="expected-loss">${{ "%.2f"|format(company['Expected Loss']) }}</td>
+                                <td class="current-ratio">{{ "%.2f"|format(company['Current Ratio']) }}</td>
+                                <td class="roe {% if company.ROE > 0 %}positive{% elif company.ROE < 0 %}negative{% endif %}">
+                                    {{ "%.2f"|format(company.ROE * 100) }}%
+                                </td>
+                                <td class="leverage-ratio">{{ "%.2f"|format(company['Leverage Ratio']) }}</td>
+                                <td class="risk-level">
+                                    <span class="risk-badge {{ company.risk_level }}">
+                                        {{ company.risk_level|capitalize }}
+                                    </span>
+                                </td>
+                                <td class="actions">
+                                    <button class="action-btn view-details" data-company="{{ company.Company }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="action-btn add-alert" data-company="{{ company.Company }}">
+                                        <i class="fas fa-bell"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-chart-line empty-icon"></i>
+                    <h3>No Company Data Found</h3>
+                    <p>There are no companies matching your search criteria or the credit risk database is empty.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Company Detail Modals -->
+    {% for company in companies %}
+    <div id="company-detail-{{ loop.index }}" class="modal">
+        <div class="modal-content">
+            <div class="modal-header {{ company.risk_level }}-risk">
+                <h2 id="modalCompanyName">{{ company.Company }}</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="company-risk-details">
+                    <div class="risk-metrics">
+                        <h3>Risk Metrics</h3>
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <h4>Probability of Default</h4>
+                                <p class="metric-value">{{ "%.2f"|format(company['Probability of Default'] * 100) }}%</p>
+                            </div>
+                            <div class="metric-card">
+                                <h4>Expected Loss</h4>
+                                <p class="metric-value">${{ "%.2f"|format(company['Expected Loss']) }}</p>
+                            </div>
+                            <div class="metric-card">
+                                <h4>Credit VaR</h4>
+                                <p class="metric-value">{{ "%.2f"|format(company['Credit VaR'] * 100) }}%</p>
+                            </div>
+                            <div class="metric-card">
+                                <h4>Rating Change Probability</h4>
+                                <p class="metric-value">{{ "%.2f"|format(company['Probability of Credit Rating Change'] * 100) }}%</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="financial-metrics">
+                        <h3>Financial Metrics</h3>
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <h4>Current Ratio</h4>
+                                <p class="metric-value">{{ "%.2f"|format(company['Current Ratio']) }}</p>
+                            </div>
+                            <div class="metric-card">
+                                <h4>Cash Ratio</h4>
+                                <p class="metric-value">{{ "%.2f"|format(company['Cash Ratio']) }}</p>
+                            </div>
+                            <div class="metric-card">
+                                <h4>ROA</h4>
+                                <p class="metric-value">{{ "%.2f"|format(company['ROA'] * 100) }}%</p>
+                            </div>
+                            <div class="metric-card">
+                                <h4>ROE</h4>
+                                <p class="metric-value">{{ "%.2f"|format(company['ROE'] * 100) }}%</p>
+                            </div>
+                            <div class="metric-card">
+                                <h4>Leverage Ratio</h4>
+                                <p class="metric-value">{{ "%.2f"|format(company['Leverage Ratio']) }}</p>
+                            </div>
+                            <div class="metric-card">
+                                <h4>Ex Ante Risk Cost</h4>
+                                <p class="metric-value">${{ "%.2f"|format(company['Ex Ante Risk Cost']) }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button class="modal-btn secondary">Set Alert</button>
+                    <button class="modal-btn primary">Generate Report</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    
+    <script src="{{ url_for('static', filename='script.js') }}?v={{ now.timestamp() }}"></script>
+</body>
+</html> 

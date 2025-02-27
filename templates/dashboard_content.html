@@ -1,0 +1,75 @@
+<!-- Dashboard content for AJAX requests -->
+<div class="content-wrapper">
+    <div class="filters-section">
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search for news or industry..." value="{{ search_query }}">
+                <button id="searchButton" class="search-button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            <div id="searchSuggestions" class="search-suggestions"></div>
+        </div>
+        
+        <div class="select-all-wrapper">
+            <div class="select-all-option">
+                <label>
+                    <input type="checkbox" id="selectAll">
+                    <span>Select All Industries</span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="industry-checkboxes">
+            {% for industry in industries %}
+            <label class="industry-checkbox">
+                <input type="checkbox" name="industry" value="{{ industry }}"
+                       {% if industry in selected_industries %}checked{% endif %}>
+                <span class="industry-name">{{ industry }}</span>
+                {% if industry not in default_industries %}
+                <button class="delete-industry" data-industry="{{ industry }}" title="Remove industry"><i class="fas fa-times"></i></button>
+                {% endif %}
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="news-section">
+        <h2><i class="fas fa-newspaper"></i> Latest Market News</h2>
+        <div class="news-container">
+            {% for article in news %}
+            <div class="news-card">
+                <div class="news-header">
+                    <a href="{{ article.url }}" target="_blank" class="news-title">{{ article.title }}</a>
+                    <div class="news-time">
+                        {{ article.formatted_time|default(article.time_published, true) }}
+                    </div>
+                </div>
+                <p class="news-summary">{{ article.summary }}</p>
+                <div class="news-meta">
+                    <div class="sentiment-score 
+                        {% if article.sentiment > 0.2 %}positive
+                        {% elif article.sentiment < -0.2 %}negative
+                        {% else %}neutral{% endif %}"
+                        {% if article.sentiment|abs > 0.5 %}
+                            data-level="high"
+                        {% elif article.sentiment|abs > 0.2 %}
+                            data-level="medium"
+                        {% else %}
+                            data-level="low"
+                        {% endif %}
+                    >
+                        <i class="fas {% if article.sentiment > 0.2 %}fa-smile{% elif article.sentiment < -0.2 %}fa-frown{% else %}fa-meh{% endif %}"></i> 
+                        Sentiment: {{ "%.2f"|format(article.sentiment) }}
+                    </div>
+                    <div class="news-topics">
+                        {% for industry in article.industries %}
+                        <span class="topic-tag" data-topic="{{ industry }}">{{ industry }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div> 
