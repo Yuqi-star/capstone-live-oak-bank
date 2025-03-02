@@ -2,9 +2,11 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, s
 import sqlite3
 import os
 from news_fetcher import get_news
-from config import DB_PATH, DEFAULT_INDUSTRIES
+from config import DB_PATH, DEFAULT_INDUSTRIES, HEALTHCARE_SUB_INDUSTRIES, SOLAR_ENERGY_SUB_INDUSTRIES
 import secrets
 from datetime import timedelta, datetime
+import csv
+import pandas as pd
 
 app = Flask(__name__)
 # 添加 secret key 用于加密 session
@@ -165,7 +167,15 @@ def dashboard():
     username = session['username']
     # Get all industries (default + custom)
     custom_industries = get_user_industries(username)
-    all_industries = DEFAULT_INDUSTRIES + custom_industries
+    
+    # Create a structured industry hierarchy
+    industry_structure = {
+        "Healthcare": HEALTHCARE_SUB_INDUSTRIES,
+        "Solar Energy": SOLAR_ENERGY_SUB_INDUSTRIES
+    }
+    
+    # Flatten all industries for news fetching
+    all_industries = DEFAULT_INDUSTRIES + HEALTHCARE_SUB_INDUSTRIES + SOLAR_ENERGY_SUB_INDUSTRIES + custom_industries
     
     # Get selected industries from URL parameters
     selected_industries = request.args.getlist('industries')
@@ -203,6 +213,7 @@ def dashboard():
                              default_industries=DEFAULT_INDUSTRIES,
                              selected_industries=selected_industries,
                              search_query=search_query,
+                             industry_structure=industry_structure,
                              now=datetime.now())
     else:
         # For regular requests, render the full page
@@ -213,6 +224,7 @@ def dashboard():
                              default_industries=DEFAULT_INDUSTRIES,
                              selected_industries=selected_industries,
                              search_query=search_query,
+                             industry_structure=industry_structure,
                              now=datetime.now())
 
 @app.route('/companies')
@@ -348,5 +360,80 @@ def delete_industry():
     finally:
         conn.close()
 
+@app.route('/company_profiles')
+def company_profiles():
+    # 检查是否登录
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    username = session['username']
+    
+    # 读取CSV文件中的公司数据
+    csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'company_info.csv')
+    
+    try:
+        # 使用pandas读取CSV文件
+        df = pd.read_csv(csv_path)
+        # 过滤掉第一行（标题行）
+        companies_data = df[df['Category'] != 'Category'].to_dict('records')
+        
+        # 为每个公司添加行业类别标签
+        for company in companies_data:
+            industry = company.get('Industry', '')
+            company_name = company.get('Company Name', '')
+            
+            # 特殊处理JRI公司，将其归类为Solar Energy的Electrical/Electronic Manufacturing子行业
+            if 'JR Industries' in company_name or 'JRI' in company_name:
+                company['industry_category'] = 'Solar Energy'
+                company['industry_color'] = 'solar'
+                company['sub_industry'] = 'Electrical/Electronic Manufacturing'
+            elif '621610' in industry:
+                company['industry_category'] = 'Healthcare'
+                company['industry_color'] = 'healthcare'
+                company['sub_industry'] = 'Home Health Care Services'
+            elif '237130' in industry or 'Solar' in industry:
+                company['industry_category'] = 'Solar Energy'
+                company['industry_color'] = 'solar'
+                company['sub_industry'] = 'Solar EPC & Construction'
+            else:
+                company['industry_category'] = 'Other'
+                company['industry_color'] = 'other'
+                company['sub_industry'] = 'Other'
+    except Exception as e:
+        print(f"Error reading company profiles: {e}")
+        companies_data = []
+    
+    # 获取搜索查询和筛选条件
+    search_query = request.args.get('search', '')
+    industry_filter = request.args.get('industry', '')
+    
+    # 应用筛选
+    if search_query:
+        companies_data = [c for c in companies_data if search_query.lower() in c.get('Company Name', '').lower()]
+    
+    if industry_filter:
+        companies_data = [c for c in companies_data if industry_filter.lower() in c.get('industry_category', '').lower()]
+    
+    # Check if this is an AJAX request
+    is_ajax = request.args.get('ajax', 'false') == 'true'
+    
+    # Render the template with the appropriate layout
+    if is_ajax:
+        # For AJAX requests, only render the content part
+        return render_template('company_profiles_content.html',
+                             username=username,
+                             companies=companies_data,
+                             search_query=search_query,
+                             industry_filter=industry_filter,
+                             now=datetime.now())
+    else:
+        # For regular requests, render the full page
+        return render_template('company_profiles.html',
+                             username=username,
+                             companies=companies_data,
+                             search_query=search_query,
+                             industry_filter=industry_filter,
+                             now=datetime.now())
+
 if __name__ == '__main__':
-    app.run(debug=True, port=8081)
+    app.run(debug=True)

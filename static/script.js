@@ -20,13 +20,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchSuggestions = document.getElementById('searchSuggestions');
     let selectAllCheckbox = document.getElementById('selectAll');
     const industryCheckboxes = document.querySelectorAll('input[name="industry"]');
+    const mainIndustryCheckboxes = document.querySelectorAll('.main-industry-checkbox');
+    const subIndustryCheckboxes = document.querySelectorAll('.sub-industry-checkbox');
+    const industryToggles = document.querySelectorAll('.industry-toggle');
     
     console.log("Search input:", searchInput);
     console.log("Select all checkbox:", selectAllCheckbox);
     console.log("Industry checkboxes:", industryCheckboxes.length);
+    console.log("Main industry checkboxes:", mainIndustryCheckboxes.length);
+    console.log("Sub industry checkboxes:", subIndustryCheckboxes.length);
     
     // Initialize checkboxes state
     initializeCheckboxes();
+    
+    // Initialize industry toggles
+    initializeIndustryToggles();
     
     // Add focus animation to search input
     searchInput.addEventListener('focus', function() {
@@ -92,10 +100,63 @@ document.addEventListener('DOMContentLoaded', function() {
             selectAllCheckbox.checked = allChecked;
             selectAllCheckbox.indeterminate = !allChecked && someChecked;
             
+            // If this is a main industry checkbox, update its sub-industries
+            if (this.classList.contains('main-industry-checkbox')) {
+                const industry = this.dataset.industry;
+                const subCheckboxes = document.querySelectorAll(`.sub-industry-checkbox[data-parent="${industry}"]`);
+                subCheckboxes.forEach(subCb => {
+                    subCb.checked = this.checked;
+                });
+            }
+            
+            // If this is a sub-industry checkbox, update its parent industry
+            if (this.classList.contains('sub-industry-checkbox')) {
+                const parentIndustry = this.dataset.parent;
+                const parentCheckbox = document.querySelector(`.main-industry-checkbox[data-industry="${parentIndustry}"]`);
+                const siblingCheckboxes = document.querySelectorAll(`.sub-industry-checkbox[data-parent="${parentIndustry}"]`);
+                
+                const allSiblingsChecked = Array.from(siblingCheckboxes).every(cb => cb.checked);
+                const someSiblingsChecked = Array.from(siblingCheckboxes).some(cb => cb.checked);
+                
+                if (parentCheckbox) {
+                    parentCheckbox.checked = allSiblingsChecked;
+                    parentCheckbox.indeterminate = !allSiblingsChecked && someSiblingsChecked;
+                }
+            }
+            
             // Update results
             updateResults();
         });
     });
+    
+    // Initialize industry toggles
+    function initializeIndustryToggles() {
+        // Add click event to industry toggles
+        industryToggles.forEach(toggle => {
+            const mainCheckboxContainer = toggle.closest('.industry-main-checkbox');
+            const subIndustriesContainer = mainCheckboxContainer.nextElementSibling;
+            
+            // Initially show sub-industries
+            mainCheckboxContainer.classList.add('expanded');
+            
+            toggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Toggle expanded class
+                mainCheckboxContainer.classList.toggle('expanded');
+                
+                // Toggle visibility of sub-industries
+                if (subIndustriesContainer) {
+                    if (mainCheckboxContainer.classList.contains('expanded')) {
+                        subIndustriesContainer.style.display = 'flex';
+                    } else {
+                        subIndustriesContainer.style.display = 'none';
+                    }
+                }
+            });
+        });
+    }
     
     // Click outside search suggestions to hide them
     document.addEventListener('click', function(e) {
@@ -123,8 +184,28 @@ document.addEventListener('DOMContentLoaded', function() {
             industryCheckboxes.forEach(cb => {
                 cb.checked = selectedIndustries.includes(cb.value);
             });
+            
+            // Update main industry checkboxes based on their sub-industries
+            mainIndustryCheckboxes.forEach(mainCb => {
+                const industry = mainCb.dataset.industry;
+                const subCheckboxes = document.querySelectorAll(`.sub-industry-checkbox[data-parent="${industry}"]`);
+                
+                if (subCheckboxes.length > 0) {
+                    const allSubChecked = Array.from(subCheckboxes).every(cb => cb.checked);
+                    const someSubChecked = Array.from(subCheckboxes).some(cb => cb.checked);
+                    
+                    mainCb.checked = allSubChecked;
+                    mainCb.indeterminate = !allSubChecked && someSubChecked;
+                }
+            });
+            
             updateSelectAllState();
         }
+        
+        // Initialize sub-industry containers
+        document.querySelectorAll('.sub-industries-container').forEach(container => {
+            container.style.display = 'flex'; // Initially show all sub-industries
+        });
     }
     
     // Update select all checkbox state

@@ -121,6 +121,16 @@ def get_news(industries: Optional[List[str]] = None, search_query: Optional[str]
         industries_lower = [industry.lower() for industry in industries] if industries else []
         search_query_lower = search_query.lower() if search_query else None
         
+        # 创建主行业和子行业的映射关系，用于更智能的匹配
+        main_industries = {
+            "healthcare": ["physician offices", "specialty clinics", "home health", "hospitals", 
+                          "pharmaceutical", "biotechnology", "medical instrument", "health insurance", 
+                          "medical laboratories", "diagnostics"],
+            "solar energy": ["solar electric", "solar power", "semiconductor", "pv cell", "solar inverter", 
+                            "electrical components", "solar epc", "solar construction", "solar project", 
+                            "solar financing", "solar leasing"]
+        }
+        
         for article in all_news:
             try:
                 # 获取文章的行业/主题
@@ -140,13 +150,32 @@ def get_news(industries: Optional[List[str]] = None, search_query: Optional[str]
                         matched = True
                 # 否则，如果有选择行业，严格按照选中的行业过滤
                 elif industries and industries_lower:
-                    for industry in industries_lower:
-                        # 检查标题、摘要和主题中是否包含行业关键词
-                        if (industry in article_title or
-                            industry in article_summary or
-                            any(industry in topic.lower() for topic in article_industries)):
+                    # 检查是否匹配主行业或子行业
+                    for industry_lower in industries_lower:
+                        # 直接匹配行业名称
+                        if (industry_lower in article_title or
+                            industry_lower in article_summary or
+                            any(industry_lower in topic.lower() for topic in article_industries)):
                             matched = True
                             break
+                            
+                        # 智能匹配主行业的相关关键词
+                        for main_industry, keywords in main_industries.items():
+                            if industry_lower == main_industry:
+                                # 如果选择了主行业，检查是否包含任何相关关键词
+                                if any(keyword in article_title or 
+                                       keyword in article_summary or
+                                       any(keyword in topic.lower() for topic in article_industries)
+                                       for keyword in keywords):
+                                    matched = True
+                                    break
+                            # 如果选择了子行业，检查是否匹配该子行业
+                            elif any(keyword in industry_lower for keyword in keywords):
+                                if (industry_lower in article_title or
+                                    industry_lower in article_summary or
+                                    any(industry_lower in topic.lower() for topic in article_industries)):
+                                    matched = True
+                                    break
                 else:
                     # 如果没有选择任何行业也没有搜索查询，显示一个特殊消息
                     matched = False

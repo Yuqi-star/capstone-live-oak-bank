@@ -1,0 +1,259 @@
+<!-- Company Profiles Content for AJAX requests -->
+<div class="profiles-dashboard-wrapper">
+    <!-- Industry Filter Cards -->
+    <div class="industry-filter-cards">
+        <div class="filter-card all-industries" data-industry="">
+            <div class="filter-icon">
+                <i class="fas fa-globe"></i>
+            </div>
+            <div class="filter-info">
+                <h3>All Industries</h3>
+                <p class="company-count">{{ companies|length }}</p>
+            </div>
+        </div>
+        <div class="filter-card healthcare-industry" data-industry="Healthcare">
+            <div class="filter-icon">
+                <i class="fas fa-heartbeat"></i>
+            </div>
+            <div class="filter-info">
+                <h3>Healthcare</h3>
+                <p class="company-count">{{ companies|selectattr('industry_category', 'equalto', 'Healthcare')|list|length }}</p>
+            </div>
+        </div>
+        <div class="filter-card solar-industry" data-industry="Solar Energy">
+            <div class="filter-icon">
+                <i class="fas fa-solar-panel"></i>
+            </div>
+            <div class="filter-info">
+                <h3>Solar Energy</h3>
+                <p class="company-count">{{ companies|selectattr('industry_category', 'equalto', 'Solar Energy')|list|length }}</p>
+            </div>
+        </div>
+        <div class="filter-card other-industry" data-industry="Other">
+            <div class="filter-icon">
+                <i class="fas fa-industry"></i>
+            </div>
+            <div class="filter-info">
+                <h3>Other Industries</h3>
+                <p class="company-count">{{ companies|selectattr('industry_category', 'equalto', 'Other')|list|length }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Controls -->
+    <div class="profiles-controls">
+        <div class="profiles-search-form">
+            <div class="search-box">
+                <input type="text" id="companySearchInput" placeholder="Search companies..." value="{{ search_query }}">
+                <button id="companySearchButton" class="search-button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+        <div class="view-toggle">
+            <button class="view-btn active" data-view="grid"><i class="fas fa-th"></i> Grid</button>
+            <button class="view-btn" data-view="list"><i class="fas fa-list"></i> List</button>
+        </div>
+    </div>
+
+    <!-- Company Profiles Grid -->
+    <div class="company-profiles-container grid-view">
+        {% if companies %}
+            {% for company in companies %}
+            <div class="company-profile-card {{ company.industry_color }}">
+                <div class="company-profile-header">
+                    <h3 class="company-name">{{ company['Company Name'] }}</h3>
+                    <span class="industry-badge {{ company.industry_color }}">{{ company.industry_category }}</span>
+                </div>
+                <div class="company-profile-body">
+                    <div class="company-info">
+                        <p><i class="fas fa-map-marker-alt"></i> {{ company.Headquarters }}</p>
+                        <p><i class="fas fa-calendar-alt"></i> Founded: {{ company.Founded }}</p>
+                        <p><i class="fas fa-industry"></i> {{ company.sub_industry }}</p>
+                        <p><i class="fas fa-phone"></i> {{ company.Phone }}</p>
+                        <p><i class="fas fa-globe"></i> <a href="{{ company.Website }}" target="_blank">Website</a></p>
+                        {% if company['Linkedin link'] %}
+                        <p><i class="fab fa-linkedin"></i> <a href="{{ company['Linkedin link'] }}" target="_blank">LinkedIn</a></p>
+                        {% endif %}
+                    </div>
+                    <div class="company-specialties">
+                        <h4>Specialties</h4>
+                        <p>{{ company.Specialties }}</p>
+                    </div>
+                </div>
+                <div class="company-profile-footer">
+                    <button class="view-details-btn" data-company="{{ company['Company Name'] }}">View Details</button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-building"></i>
+                </div>
+                <h3>No Companies Found</h3>
+                <p>Try adjusting your search criteria or filters.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Company Detail Modals -->
+{% for company in companies %}
+<div id="company-detail-{{ loop.index }}" class="modal">
+    <div class="modal-content">
+        <div class="modal-header {{ company.industry_color }}">
+            <h2>{{ company['Company Name'] }}</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="company-detail-grid">
+                <div class="company-detail-section basic-info">
+                    <h3><i class="fas fa-info-circle"></i> Basic Information</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <h4>Founded</h4>
+                            <p>{{ company.Founded }}</p>
+                        </div>
+                        <div class="detail-item">
+                            <h4>Headquarters</h4>
+                            <p>{{ company.Headquarters }}</p>
+                        </div>
+                        <div class="detail-item">
+                            <h4>Industry</h4>
+                            <p>{{ company.Industry }}</p>
+                        </div>
+                        <div class="detail-item">
+                            <h4>Sub-Industry</h4>
+                            <p>{{ company.sub_industry }}</p>
+                        </div>
+                        <div class="detail-item">
+                            <h4>Contact</h4>
+                            <p>{{ company.Phone }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="company-detail-section specialties">
+                    <h3><i class="fas fa-star"></i> Specialties</h3>
+                    <p>{{ company.Specialties }}</p>
+                </div>
+                
+                <div class="company-detail-section markets">
+                    <h3><i class="fas fa-globe-americas"></i> Key Markets Served</h3>
+                    <p>{{ company['Key Markets Served'] }}</p>
+                </div>
+                
+                <div class="company-detail-section personnel">
+                    <h3><i class="fas fa-users"></i> Key Personnel</h3>
+                    <p>{{ company['Key Personnel'] }}</p>
+                </div>
+                
+                <div class="company-detail-section products">
+                    <h3><i class="fas fa-box-open"></i> Products and Services</h3>
+                    <p>{{ company['Products and Services'] }}</p>
+                </div>
+                
+                <div class="company-detail-section mentions">
+                    <h3><i class="fas fa-award"></i> Notable Mentions</h3>
+                    <p>{{ company['Notable Mentions'] }}</p>
+                </div>
+                
+                <div class="company-detail-section news">
+                    <h3><i class="fas fa-newspaper"></i> Industrial News</h3>
+                    <p>{{ company['Industrial News'] }}</p>
+                </div>
+                
+                <div class="company-detail-section events">
+                    <h3><i class="fas fa-calendar-day"></i> Company News and Events</h3>
+                    <p>{{ company['Company News and Events'] }}</p>
+                </div>
+                
+                <div class="company-detail-section numbers">
+                    <h3><i class="fas fa-chart-bar"></i> Business and Operating Numbers</h3>
+                    <p>{{ company['Business and operating numbers'] }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <div class="external-links">
+                <a href="{{ company.Website }}" target="_blank" class="modal-btn primary"><i class="fas fa-globe"></i> Visit Website</a>
+                {% if company['Linkedin link'] %}
+                <a href="{{ company['Linkedin link'] }}" target="_blank" class="modal-btn secondary"><i class="fab fa-linkedin"></i> LinkedIn</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Industry filter cards
+        const filterCards = document.querySelectorAll('.filter-card');
+        filterCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const industry = this.getAttribute('data-industry');
+                filterCompaniesByIndustry(industry);
+            });
+        });
+        
+        // View toggle buttons
+        const viewButtons = document.querySelectorAll('.view-btn');
+        const profilesContainer = document.querySelector('.company-profiles-container');
+        
+        viewButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Remove active class from all buttons
+                viewButtons.forEach(b => b.classList.remove('active'));
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Set view mode
+                const viewMode = this.getAttribute('data-view');
+                profilesContainer.className = 'company-profiles-container ' + viewMode + '-view';
+            });
+        });
+        
+        // Company detail modal
+        const detailButtons = document.querySelectorAll('.view-details-btn');
+        const modals = document.querySelectorAll('.modal');
+        const closeButtons = document.querySelectorAll('.close-modal');
+        
+        detailButtons.forEach((btn, index) => {
+            btn.addEventListener('click', function() {
+                document.getElementById('company-detail-' + (index + 1)).style.display = 'block';
+            });
+        });
+        
+        closeButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.closest('.modal').style.display = 'none';
+            });
+        });
+        
+        window.addEventListener('click', function(e) {
+            modals.forEach(modal => {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+        
+        // Company search
+        const searchInput = document.getElementById('companySearchInput');
+        const searchButton = document.getElementById('companySearchButton');
+        
+        searchButton.addEventListener('click', function() {
+            const searchQuery = searchInput.value.trim();
+            filterCompaniesBySearch(searchQuery);
+        });
+        
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const searchQuery = this.value.trim();
+                filterCompaniesBySearch(searchQuery);
+            }
+        });
+    });
+</script> 

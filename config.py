@@ -16,13 +16,30 @@ print(f"数据库路径: {DB_PATH}")
 # News Config
 MAX_NEWS_PER_PAGE = 10
 
-# Default industry list
+# Default industry list - Only Healthcare and Solar Energy
 DEFAULT_INDUSTRIES = [
     "Healthcare",
-    "Technology",
-    "Energy",
-    "Financials",
-    "AI"
+    "Solar Energy"
+]
+
+# Sub-industries for Healthcare and Solar Energy
+HEALTHCARE_SUB_INDUSTRIES = [
+    "Physician Offices & Specialty Clinics",
+    "Home Health Care Services",
+    "General Hospitals",
+    "Pharmaceutical Manufacturing",
+    "Biotechnology R&D",
+    "Surgical & Medical Instrument Manufacturing",
+    "Health Insurance & Managed Care",
+    "Medical Laboratories & Diagnostics"
+]
+
+SOLAR_ENERGY_SUB_INDUSTRIES = [
+    "Solar Electric Power Generation",
+    "Semiconductor & PV Cell Manufacturing",
+    "Solar Inverter & Electrical Components",
+    "Solar EPC & Construction",
+    "Solar Project Financing & Leasing"
 ]
 
 # User-defined industries will be stored in the database
