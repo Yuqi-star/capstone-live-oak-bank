@@ -1,10 +1,14 @@
 :root {
-    --primary-color: #4A76C7;
+    --primary-color: #1E1847; /* Live Oak Bank dark blue/purple */
     --secondary-color: #ffffff;
+    --accent-color: #2DC77A; /* Live Oak Bank green */
+    --accent-color-lighter: #4AD592; /* Lighter shade of the accent color */
     --text-color: #333333;
-    --border-color: #e2e8f0;
+    --border-color: #e6e9ed;
     --background-color: #f8fafc;
     --error-color: #dc2626;
+    --dark-accent-color: #25a868; /* Darker shade of accent for hover */
+    --light-background: #F5F7FA;
 }
 
 body {
@@ -28,31 +32,59 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    position: relative;
+    overflow: hidden;
+    background-image: linear-gradient(135deg, #1E1847 0%, #2E285C 100%);
+}
+
+.left-section::after {
+    content: '';
+    position: absolute;
+    bottom: -100px;
+    right: -100px;
+    width: 300px;
+    height: 300px;
+    background-color: rgba(45, 199, 122, 0.1); /* Live Oak Bank green with opacity */
+    border-radius: 50%;
+    z-index: 1;
 }
 
 .logo-section {
     display: flex;
     align-items: center;
     gap: 1rem;
-    margin-bottom: 4rem;
+    margin-bottom: 2rem;
+    position: relative;
+    z-index: 2;
+    margin-top: 0;
 }
 
-.logo {
-    width: 48px;
-    height: 48px;
+.bank-logo {
+    max-width: 200px;
+    height: auto;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 5px;
+    transition: all 0.3s ease;
 }
 
 .logo-section h1 {
     font-size: 1.5rem;
     margin: 0;
+    font-weight: 600;
+    color: var(--secondary-color);
 }
 
 .left-section h2 {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
     font-weight: 600;
     line-height: 1.2;
     margin: 0;
+    margin-top: 4rem;
     max-width: 600px;
+    position: relative;
+    z-index: 2;
 }
 
 .right-section {
@@ -60,45 +92,60 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 2rem;
-    background-color: var(--secondary-color);
+    padding: 4rem 2rem;
+    background-color: var(--light-background);
+    min-height: 100%;
 }
 
 .auth-form {
     width: 100%;
     max-width: 400px;
-    padding: 2rem;
+    padding: 2.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    background-color: var(--secondary-color);
+    margin-top: 0;
 }
 
 .auth-form h2 {
-    color: var(--text-color);
+    color: var(--primary-color);
     font-size: 1.5rem;
     margin-bottom: 2rem;
     font-weight: 600;
 }
 
 .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: #444;
+    font-weight: 500;
 }
 
 .form-group input {
     width: 100%;
-    padding: 0.75rem;
-    border: 2px solid var(--border-color);
-    border-radius: 6px;
+    padding: 0.875rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
     font-size: 1rem;
-    transition: border-color 0.2s;
+    transition: all 0.2s;
+    background-color: #FCFCFD;
 }
 
 .form-group input:focus {
     outline: none;
-    border-color: var(--primary-color);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(45, 199, 122, 0.1);
 }
 
 .remember-me {
     display: flex;
     align-items: center;
-    margin: 1rem 0;
+    margin: 1rem 0 1.5rem;
 }
 
 .remember-me label {
@@ -107,39 +154,50 @@ body {
     gap: 0.5rem;
     color: var(--text-color);
     cursor: pointer;
+    font-size: 0.9rem;
 }
 
 .remember-me input[type="checkbox"] {
     width: auto;
     cursor: pointer;
+    accent-color: var(--accent-color);
 }
 
 button {
     width: 100%;
-    padding: 0.75rem;
-    background-color: #666666;
+    padding: 0.875rem;
+    background-color: var(--accent-color-lighter);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 1rem;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(45, 199, 122, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 button:hover {
-    background-color: #555555;
+    background-color: var(--accent-color);
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: translateY(0);
 }
 
 .auth-links {
-    margin-top: 1rem;
+    margin-top: 1.75rem;
     text-align: center;
 }
 
 .auth-links a {
-    color: var(--primary-color);
+    color: var(--accent-color);
     text-decoration: none;
-    font-size: 0.875rem;
+    font-size: 0.95rem;
+    font-weight: 500;
 }
 
 .auth-links a:hover {
@@ -151,8 +209,23 @@ button:hover {
     color: var(--error-color);
     padding: 0.75rem;
     border-radius: 6px;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
     font-size: 0.875rem;
+}
+
+.footer-logo {
+    opacity: 0.7;
+    width: 40px;
+    height: auto;
+    padding: 3px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 4px;
+}
+
+.footer-text {
+    font-size: 0.8rem;
+    color: #777;
+    margin-top: 0.5rem;
 }
 
 @media (max-width: 768px) {
@@ -161,7 +234,7 @@ button:hover {
     }
     
     .left-section {
-        padding: 1rem;
+        padding: 1.5rem;
     }
     
     .left-section h2 {
@@ -170,6 +243,11 @@ button:hover {
     }
     
     .right-section {
-        padding: 1rem;
+        padding: 1.5rem;
+    }
+
+    .auth-form {
+        box-shadow: none;
+        padding: 1rem 0;
     }
 } 

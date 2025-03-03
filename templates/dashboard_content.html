@@ -24,7 +24,7 @@
             <!-- Structured Industry Sidebar -->
             {% for main_industry in default_industries %}
             <div class="industry-category">
-                <div class="industry-main-checkbox">
+                <div class="industry-main-checkbox expanded">
                     <label class="industry-checkbox main-industry">
                         <input type="checkbox" name="industry" value="{{ main_industry }}" 
                                {% if main_industry in selected_industries %}checked{% endif %}
@@ -53,15 +53,33 @@
                             <span class="industry-name">{{ sub_industry }}</span>
                         </label>
                         {% endfor %}
+                    {% elif main_industry == "Technology" %}
+                        {% for sub_industry in industry_structure["Technology"] %}
+                        <label class="industry-checkbox sub-industry">
+                            <input type="checkbox" name="industry" value="{{ sub_industry }}"
+                                   {% if sub_industry in selected_industries %}checked{% endif %}
+                                   class="sub-industry-checkbox" data-parent="{{ main_industry }}">
+                            <span class="industry-name">{{ sub_industry }}</span>
+                        </label>
+                        {% endfor %}
+                    {% elif main_industry == "AI" %}
+                        {% for sub_industry in industry_structure["AI"] %}
+                        <label class="industry-checkbox sub-industry">
+                            <input type="checkbox" name="industry" value="{{ sub_industry }}"
+                                   {% if sub_industry in selected_industries %}checked{% endif %}
+                                   class="sub-industry-checkbox" data-parent="{{ main_industry }}">
+                            <span class="industry-name">{{ sub_industry }}</span>
+                        </label>
+                        {% endfor %}
                     {% endif %}
                 </div>
             </div>
             {% endfor %}
             
             <!-- Custom Industries Section (if any) -->
-            {% if industries|reject('in', default_industries + industry_structure["Healthcare"] + industry_structure["Solar Energy"])|list|length > 0 %}
+            {% if industries|reject('in', default_industries + industry_structure["Healthcare"] + industry_structure["Solar Energy"] + industry_structure["Technology"] + industry_structure["AI"])|list|length > 0 %}
             <div class="industry-category custom-industries">
-                <div class="industry-main-checkbox">
+                <div class="industry-main-checkbox expanded">
                     <label class="industry-checkbox main-industry">
                         <input type="checkbox" id="customIndustriesToggle" class="main-industry-checkbox">
                         <span class="industry-name">Custom Industries</span>
@@ -73,7 +91,9 @@
                     {% for industry in industries %}
                         {% if industry not in default_industries and 
                               industry not in industry_structure["Healthcare"] and 
-                              industry not in industry_structure["Solar Energy"] %}
+                              industry not in industry_structure["Solar Energy"] and
+                              industry not in industry_structure["Technology"] and
+                              industry not in industry_structure["AI"] %}
                         <label class="industry-checkbox sub-industry">
                             <input type="checkbox" name="industry" value="{{ industry }}"
                                    {% if industry in selected_industries %}checked{% endif %}>

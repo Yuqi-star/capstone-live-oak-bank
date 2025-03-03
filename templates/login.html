@@ -3,32 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Oak NewsDesk - Login</title>
+    <title>Live Oak Bank - NewsDesk Login</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="auth-container">
         <div class="left-section">
             <div class="logo-section">
-                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Live Oak NewsDesk" class="logo">
-                <h1>Live Oak NewsDesk</h1>
+                <img src="{{ url_for('static', filename='images/bank1.png') }}" alt="Live Oak Bank" class="bank-logo">
             </div>
-            <h2>Real-Time Market Insights for Informed Conversations</h2>
+            <h2>Insights at Your Fingertips</h2>
+            <p style="margin-top: 1rem; opacity: 0.9; position: relative; z-index: 2; line-height: 1.6;">Access real-time industry news, credit insights, and company profiles to deliver more informed and valuable client conversations.</p>
         </div>
         
         <div class="right-section">
             <div class="auth-form">
-                <h2>Sign In to Your Account</h2>
+                <h2><i class="fas fa-sign-in-alt" style="color: #2DC77A; margin-right: 8px;"></i> Sign In to NewsDesk</h2>
                 {% if error %}
                 <div class="error-message">{{ error }}</div>
                 {% endif %}
                 <form method="POST">
                     <div class="form-group">
-                        <input type="text" name="username" placeholder="Your username" required>
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" placeholder="Enter your username" required>
                     </div>
                     <div class="form-group">
-                        <input type="password" name="password" placeholder="Your password" required>
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" placeholder="Enter your password" required>
                     </div>
                     <div class="form-group remember-me">
                         <label>
@@ -40,6 +43,10 @@
                 </form>
                 <div class="auth-links">
                     Don't have an account? <a href="{{ url_for('register') }}">Register</a>
+                </div>
+                <div style="text-align: center; margin-top: 2.5rem;">
+                    <img src="{{ url_for('static', filename='images/bank3.png') }}" alt="Live Oak Bank" class="footer-logo">
+                    <p class="footer-text">© 2025 Live Oak Bank. All rights reserved.</p>
                 </div>
             </div>
         </div>

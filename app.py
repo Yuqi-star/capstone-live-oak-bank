@@ -2,14 +2,14 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, s
 import sqlite3
 import os
 from news_fetcher import get_news
-from config import DB_PATH, DEFAULT_INDUSTRIES, HEALTHCARE_SUB_INDUSTRIES, SOLAR_ENERGY_SUB_INDUSTRIES
+from config import DB_PATH, DEFAULT_INDUSTRIES, HEALTHCARE_SUB_INDUSTRIES, SOLAR_ENERGY_SUB_INDUSTRIES, TECHNOLOGY_SUB_INDUSTRIES, AI_SUB_INDUSTRIES
 import secrets
 from datetime import timedelta, datetime
 import csv
 import pandas as pd
 
 app = Flask(__name__)
-# 添加 secret key 用于加密 session
+# Add secret key for session encryption
 app.secret_key = secrets.token_hex(16)
 
 # Add these lines near the top of your app.py
@@ -73,14 +73,14 @@ def register_user(username, password, first_name, last_name):
 
 @app.route('/')
 def home():
-    # 如果用户已登录，直接跳转到 dashboard
+    # If user is already logged in, redirect to dashboard
     if 'username' in session:
         return redirect(url_for('dashboard', username=session['username']))
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    # 如果用户已登录，直接跳转到 dashboard
+    # If user is already logged in, redirect to dashboard
     if 'username' in session:
         return redirect(url_for('dashboard', username=session['username']))
         
@@ -90,12 +90,12 @@ def login():
         remember = request.form.get('remember') == 'on'
         
         if validate_user(username, password):
-            # 如果选择了"记住我"，设置 session 的过期时间为30天
+            # If "remember me" is selected, set session expiration to 30 days
             if remember:
                 session.permanent = True
                 app.permanent_session_lifetime = timedelta(days=30)
             
-            # 保存用户名到 session
+            # Save username to session
             session['username'] = username
             return redirect(url_for('dashboard', username=username))
         return render_template('login.html', error="Invalid credentials")
@@ -106,12 +106,8 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        confirm_password = request.form['confirm_password']
         first_name = request.form['first_name']
         last_name = request.form['last_name']
-
-        if password != confirm_password:
-            return render_template('register.html', error="Passwords do not match")
 
         if register_user(username, password, first_name, last_name):
             return redirect(url_for('login'))
@@ -160,7 +156,7 @@ def get_user_industries(username):
 
 @app.route('/dashboard')
 def dashboard():
-    # 检查是否登录
+    # Check if logged in
     if 'username' not in session:
         return redirect(url_for('login'))
     
@@ -171,30 +167,32 @@ def dashboard():
     # Create a structured industry hierarchy
     industry_structure = {
         "Healthcare": HEALTHCARE_SUB_INDUSTRIES,
-        "Solar Energy": SOLAR_ENERGY_SUB_INDUSTRIES
+        "Solar Energy": SOLAR_ENERGY_SUB_INDUSTRIES,
+        "Technology": TECHNOLOGY_SUB_INDUSTRIES,
+        "AI": AI_SUB_INDUSTRIES
     }
     
     # Flatten all industries for news fetching
-    all_industries = DEFAULT_INDUSTRIES + HEALTHCARE_SUB_INDUSTRIES + SOLAR_ENERGY_SUB_INDUSTRIES + custom_industries
+    all_industries = DEFAULT_INDUSTRIES + HEALTHCARE_SUB_INDUSTRIES + SOLAR_ENERGY_SUB_INDUSTRIES + TECHNOLOGY_SUB_INDUSTRIES + AI_SUB_INDUSTRIES + custom_industries
     
     # Get selected industries from URL parameters
     selected_industries = request.args.getlist('industries')
     
-    # 获取搜索查询
+    # Get search query
     search_query = request.args.get('search', '')
     
-    # 只有在首次进入（没有任何参数）时才默认全选所有行业
-    # 如果有搜索查询，不自动选择行业
-    # 如果 URL 中有参数但没有行业参数，说明用户手动取消了所有行业，应该尊重用户的选择
+    # Only select all industries by default when first entering (no parameters)
+    # If there's a search query, don't auto-select industries
+    # If URL has parameters but no industry parameters, user manually deselected all industries, respect user's choice
     if not selected_industries and not request.args:
         selected_industries = all_industries
-        # 重定向到带有所有行业参数的URL，确保新闻过滤正确
+        # Redirect to URL with all industry parameters to ensure correct news filtering
         params = request.args.copy()
         for industry in all_industries:
             params.add('industries', industry)
         return redirect(url_for('dashboard', **params))
     
-    # 如果有搜索查询但没有选择行业，则搜索所有新闻
+    # If there's a search query but no selected industries, search all news
     news_articles = get_news(
         industries=selected_industries if not search_query else None,
         search_query=search_query if search_query else None
@@ -229,32 +227,38 @@ def dashboard():
 
 @app.route('/companies')
 def companies():
-    # 检查是否登录
+    # Check if logged in
     if 'username' not in session:
         return redirect(url_for('login'))
     
     username = session['username']
     
-    # 从数据库读取信用风险数据
-    print(f"使用数据库路径: {DB_PATH}")
+    # Get search query and filter criteria
+    search_query = request.args.get('search', '')
+    risk_filter = request.args.get('risk', '')
+    
+    print(f"Search query: '{search_query}', Risk filter: '{risk_filter}'")
+    
+    # Read credit risk data from database
+    print(f"Using database path: {DB_PATH}")
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     try:
-        # 检查credit_risk表是否存在
+        # Check if credit_risk table exists
         c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='credit_risk'")
         table_exists = c.fetchone()
-        print(f"credit_risk表是否存在: {table_exists is not None}")
+        print(f"credit_risk table exists: {table_exists is not None}")
         
         if table_exists:
-            # 读取信用风险数据
+            # Read credit risk data
             c.execute("SELECT COUNT(*) FROM credit_risk")
             count = c.fetchone()[0]
-            print(f"credit_risk表中的数据数量: {count}")
+            print(f"Number of records in credit_risk table: {count}")
             
             c.execute("SELECT * FROM credit_risk LIMIT 5")
             sample_data = c.fetchall()
-            print(f"示例数据: {sample_data}")
+            print(f"Sample data: {sample_data}")
             
             c.execute("SELECT * FROM credit_risk")
             columns = [column[0] for column in c.description]
@@ -265,7 +269,7 @@ def companies():
                 for i, column in enumerate(columns):
                     company_data[column] = row[i]
                 
-                # 添加风险评级
+                # Add risk rating
                 pd = company_data.get('Probability of Default', 0)
                 if pd < 0.01:
                     company_data['risk_level'] = 'low'
@@ -276,7 +280,12 @@ def companies():
                     
                 companies_data.append(company_data)
             
-            print(f"处理后的公司数据数量: {len(companies_data)}")
+            print(f"Number of processed company records: {len(companies_data)}")
+            
+            # Print all company names for debugging
+            company_names = [c.get('Company', 'Unknown') for c in companies_data]
+            print(f"Company name list: {company_names[:10]}...")  # Only print first 10
+            
         else:
             companies_data = []
     except Exception as e:
@@ -285,21 +294,67 @@ def companies():
     finally:
         conn.close()
     
-    # 获取搜索查询和筛选条件
-    search_query = request.args.get('search', '')
-    risk_filter = request.args.get('risk', '')
-    
-    # 应用筛选
+    # Apply filters
     if search_query:
-        companies_data = [c for c in companies_data if search_query.lower() in c.get('Company', '').lower()]
+        print(f"Starting search: '{search_query}'")
+        filtered_companies = []
+        search_query_lower = search_query.lower()
+        
+        # Check if it's an exact search (e.g., Company_1)
+        is_exact_company_search = search_query_lower.startswith("company_") and search_query_lower[8:].isdigit()
+        
+        for company in companies_data:
+            company_name = company.get('Company', '')
+            industry = company.get('Industry', '')
+            sub_industry = company.get('Sub-Industry', '')
+            credit_rating = str(company.get('Credit Rating', ''))
+            
+            # Exact match for company name
+            if is_exact_company_search and company_name.lower() == search_query_lower:
+                print(f"Exact match for company name: {company_name}")
+                filtered_companies.append(company)
+                continue
+            
+            # Skip fuzzy matching if exact search but no exact match
+            if is_exact_company_search:
+                continue
+                
+            # Search company name (fuzzy match)
+            if company_name and search_query_lower in company_name.lower():
+                print(f"Matching company name: {company_name}")
+                filtered_companies.append(company)
+                continue
+                
+            # Search industry
+            if industry and search_query_lower in industry.lower():
+                print(f"Matching industry: {industry}")
+                filtered_companies.append(company)
+                continue
+                
+            # Search sub-industry
+            if sub_industry and search_query_lower in sub_industry.lower():
+                print(f"Matching sub-industry: {sub_industry}")
+                filtered_companies.append(company)
+                continue
+                
+            # Search credit rating
+            if credit_rating and search_query_lower in credit_rating.lower():
+                print(f"Matching credit rating: {credit_rating}")
+                filtered_companies.append(company)
+                continue
+        
+        print(f"Number of search results: {len(filtered_companies)}")
+        companies_data = filtered_companies
     
     if risk_filter:
+        print(f"Applying risk filter: {risk_filter}")
         companies_data = [c for c in companies_data if c.get('risk_level') == risk_filter]
+        print(f"Number of results after risk filtering: {len(companies_data)}")
     
-    # 按违约概率排序（从高到低）
+    # Sort by default probability (high to low)
     companies_data = sorted(companies_data, key=lambda x: x.get('Probability of Default', 0), reverse=True)
     
-    print(f"最终返回的公司数据数量: {len(companies_data)}")
+    print(f"Final number of company records returned: {len(companies_data)}")
     
     # Check if this is an AJAX request
     is_ajax = request.args.get('ajax', 'false') == 'true'
@@ -324,7 +379,7 @@ def companies():
 
 @app.route('/logout')
 def logout():
-    # 清除 session
+    # Clear session
     session.clear()
     return redirect(url_for('login'))
 
@@ -362,27 +417,27 @@ def delete_industry():
 
 @app.route('/company_profiles')
 def company_profiles():
-    # 检查是否登录
+    # Check if logged in
     if 'username' not in session:
         return redirect(url_for('login'))
     
     username = session['username']
     
-    # 读取CSV文件中的公司数据
+    # Read company data from CSV file
     csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'company_info.csv')
     
     try:
-        # 使用pandas读取CSV文件
+        # Use pandas to read CSV file
         df = pd.read_csv(csv_path)
-        # 过滤掉第一行（标题行）
+        # Filter out the first row (header row)
         companies_data = df[df['Category'] != 'Category'].to_dict('records')
         
-        # 为每个公司添加行业类别标签
+        # Add industry category labels for each company
         for company in companies_data:
             industry = company.get('Industry', '')
             company_name = company.get('Company Name', '')
             
-            # 特殊处理JRI公司，将其归类为Solar Energy的Electrical/Electronic Manufacturing子行业
+            # Special handling for JRI company, categorize as Solar Energy's Electrical/Electronic Manufacturing sub-industry
             if 'JR Industries' in company_name or 'JRI' in company_name:
                 company['industry_category'] = 'Solar Energy'
                 company['industry_color'] = 'solar'
@@ -403,11 +458,11 @@ def company_profiles():
         print(f"Error reading company profiles: {e}")
         companies_data = []
     
-    # 获取搜索查询和筛选条件
+    # Get search query and filter criteria
     search_query = request.args.get('search', '')
     industry_filter = request.args.get('industry', '')
     
-    # 应用筛选
+    # Apply filters
     if search_query:
         companies_data = [c for c in companies_data if search_query.lower() in c.get('Company Name', '').lower()]
     

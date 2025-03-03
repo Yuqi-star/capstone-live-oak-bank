@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Oak NewsDesk - Dashboard</title>
+    <title>Live Oak Bank - Insights Panel</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ now.timestamp() }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='transitions.css') }}?v={{ now.timestamp() }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -13,13 +13,13 @@
     <div class="dashboard-container">
         <header>
             <div class="logo-section">
-                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Live Oak NewsDesk" class="logo">
-                <h1>Live Oak NewsDesk</h1>
+                <img src="{{ url_for('static', filename='images/bank1.png') }}" alt="Live Oak Bank" class="logo">
+                <h1>Insights Panel</h1>
             </div>
             <div class="user-section">
                 <nav class="main-nav">
                     <ul>
-                        <li><a href="{{ url_for('dashboard') }}" class="nav-link active"><i class="fas fa-newspaper"></i> News</a></li>
+                        <li><a href="{{ url_for('dashboard') }}" class="nav-link active"><i class="fas fa-newspaper"></i> Industry News</a></li>
                         <li><a href="{{ url_for('companies') }}" class="nav-link"><i class="fas fa-chart-line"></i> Credit Risk</a></li>
                         <li><a href="{{ url_for('company_profiles') }}" class="nav-link"><i class="fas fa-building"></i> Company Profiles</a></li>
                     </ul>
@@ -54,7 +54,7 @@
                     <!-- Structured Industry Sidebar -->
                     {% for main_industry in default_industries %}
                     <div class="industry-category">
-                        <div class="industry-main-checkbox">
+                        <div class="industry-main-checkbox expanded">
                             <label class="industry-checkbox main-industry">
                                 <input type="checkbox" name="industry" value="{{ main_industry }}" 
                                        {% if main_industry in selected_industries %}checked{% endif %}
@@ -83,15 +83,33 @@
                                     <span class="industry-name">{{ sub_industry }}</span>
                                 </label>
                                 {% endfor %}
+                            {% elif main_industry == "Technology" %}
+                                {% for sub_industry in industry_structure["Technology"] %}
+                                <label class="industry-checkbox sub-industry">
+                                    <input type="checkbox" name="industry" value="{{ sub_industry }}"
+                                           {% if sub_industry in selected_industries %}checked{% endif %}
+                                           class="sub-industry-checkbox" data-parent="{{ main_industry }}">
+                                    <span class="industry-name">{{ sub_industry }}</span>
+                                </label>
+                                {% endfor %}
+                            {% elif main_industry == "AI" %}
+                                {% for sub_industry in industry_structure["AI"] %}
+                                <label class="industry-checkbox sub-industry">
+                                    <input type="checkbox" name="industry" value="{{ sub_industry }}"
+                                           {% if sub_industry in selected_industries %}checked{% endif %}
+                                           class="sub-industry-checkbox" data-parent="{{ main_industry }}">
+                                    <span class="industry-name">{{ sub_industry }}</span>
+                                </label>
+                                {% endfor %}
                             {% endif %}
                         </div>
                     </div>
                     {% endfor %}
                     
                     <!-- Custom Industries Section (if any) -->
-                    {% if industries|reject('in', default_industries + industry_structure["Healthcare"] + industry_structure["Solar Energy"])|list|length > 0 %}
+                    {% if industries|reject('in', default_industries + industry_structure["Healthcare"] + industry_structure["Solar Energy"] + industry_structure["Technology"] + industry_structure["AI"])|list|length > 0 %}
                     <div class="industry-category custom-industries">
-                        <div class="industry-main-checkbox">
+                        <div class="industry-main-checkbox expanded">
                             <label class="industry-checkbox main-industry">
                                 <input type="checkbox" id="customIndustriesToggle" class="main-industry-checkbox">
                                 <span class="industry-name">Custom Industries</span>
@@ -99,11 +117,13 @@
                             </label>
                         </div>
                         
-                        <div class="sub-industries-container">
+                        <div class="sub-industries-container" style="display: flex;">
                             {% for industry in industries %}
                                 {% if industry not in default_industries and 
                                       industry not in industry_structure["Healthcare"] and 
-                                      industry not in industry_structure["Solar Energy"] %}
+                                      industry not in industry_structure["Solar Energy"] and
+                                      industry not in industry_structure["Technology"] and
+                                      industry not in industry_structure["AI"] %}
                                 <label class="industry-checkbox sub-industry">
                                     <input type="checkbox" name="industry" value="{{ industry }}"
                                            {% if industry in selected_industries %}checked{% endif %}>

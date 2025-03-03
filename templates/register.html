@@ -3,46 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Oak NewsDesk - Register</title>
+    <title>Live Oak Bank - NewsDesk Registration</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="auth-container">
         <div class="left-section">
             <div class="logo-section">
-                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Live Oak NewsDesk" class="logo">
-                <h1>Live Oak NewsDesk</h1>
+                <img src="{{ url_for('static', filename='images/bank1.png') }}" alt="Live Oak Bank" class="bank-logo">
             </div>
-            <h2>Real-Time Market Insights for Informed Conversations</h2>
+            <h2>Smart Banker, Better Meetings</h2>
+            <p style="margin-top: 1rem; opacity: 0.9; position: relative; z-index: 2; line-height: 1.6;">Get instant access to critical industry trends, company profiles, and risk metrics to deliver more strategic and valuable client conversations.</p>
         </div>
         
         <div class="right-section">
             <div class="auth-form">
-                <h2>Create Your Account</h2>
+                <h2><i class="fas fa-user-plus" style="color: #2DC77A; margin-right: 8px;"></i> Create Your Account</h2>
                 {% if error %}
                 <div class="error-message">{{ error }}</div>
                 {% endif %}
                 <form method="POST">
                     <div class="form-group">
-                        <input type="text" name="first_name" placeholder="Your first name" required>
+                        <label for="first_name">First Name</label>
+                        <input type="text" id="first_name" name="first_name" placeholder="Enter your first name" required>
                     </div>
                     <div class="form-group">
-                        <input type="text" name="last_name" placeholder="Your last name" required>
+                        <label for="last_name">Last Name</label>
+                        <input type="text" id="last_name" name="last_name" placeholder="Enter your last name" required>
                     </div>
                     <div class="form-group">
-                        <input type="text" name="username" placeholder="Choose a username" required>
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" placeholder="Choose a username" required>
                     </div>
                     <div class="form-group">
-                        <input type="password" name="password" placeholder="Create a password" required>
-                    </div>
-                    <div class="form-group">
-                        <input type="password" name="confirm_password" placeholder="Confirm password" required>
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" placeholder="Create a password" required>
                     </div>
                     <button type="submit">Create Account</button>
                 </form>
                 <div class="auth-links">
                     Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
+                </div>
+                <div style="text-align: center; margin-top: 2.5rem;">
+                    <img src="{{ url_for('static', filename='images/bank3.png') }}" alt="Live Oak Bank" class="footer-logo">
+                    <p class="footer-text">© 2025 Live Oak Bank. All rights reserved.</p>
                 </div>
             </div>
         </div>

@@ -38,22 +38,22 @@ def save_cache(data):
         logger.error(f"Error saving cache: {e}")
 
 def format_timestamp(timestamp_str):
-    """将API返回的时间戳格式化为易读格式"""
+    """Format API timestamp into a readable format"""
     if not timestamp_str:
         return "N/A"
     
     try:
-        # 解析格式如 20250227T164413
+        # Parse format like 20250227T164413
         year = int(timestamp_str[0:4])
         month = int(timestamp_str[4:6])
         day = int(timestamp_str[6:8])
         hour = int(timestamp_str[9:11])
         minute = int(timestamp_str[11:13])
         
-        # 创建datetime对象
+        # Create datetime object
         dt = datetime(year, month, day, hour, minute)
         
-        # 返回格式化后的字符串，例如 "Feb 27, 2025 4:44 PM"
+        # Return formatted string, e.g. "Feb 27, 2025 4:44 PM"
         return dt.strftime("%b %d, %Y %I:%M %p")
     except Exception as e:
         logger.error(f"Error formatting timestamp {timestamp_str}: {e}")
@@ -69,16 +69,16 @@ def get_news(industries: Optional[List[str]] = None, search_query: Optional[str]
         else:
             logger.info("Fetching fresh news data from API")
             API_KEY = "H2SU1HEM2F21X9W4"
-            # 添加时间范围参数，获取最近7天的新闻
+            # Add time range parameter to get news from the last 7 days
             time_from = (datetime.now() - timedelta(days=7)).strftime('%Y%m%dT%H%M')
             base_url = (f"https://www.alphavantage.co/query?"
                        f"function=NEWS_SENTIMENT&"
                        f"apikey={API_KEY}&"
-                       f"limit=500&"  # 增加到500条
+                       f"limit=500&"  # Increase to 500 items
                        f"time_from={time_from}")
             
-            # 不在API请求中添加行业过滤，而是在后处理中进行过滤
-            # 这样可以获取所有新闻，然后根据选中的行业进行精确过滤
+            # Don't add industry filtering in the API request, but filter in post-processing
+            # This allows us to get all news and then filter precisely by selected industries
             if search_query:
                 base_url += f"&keywords={search_query}"
             
@@ -117,11 +117,11 @@ def get_news(industries: Optional[List[str]] = None, search_query: Optional[str]
         # Process news data
         news_list = []
         
-        # 将所有行业转换为小写，用于不区分大小写的匹配
+        # Convert all industries to lowercase for case-insensitive matching
         industries_lower = [industry.lower() for industry in industries] if industries else []
         search_query_lower = search_query.lower() if search_query else None
         
-        # 创建主行业和子行业的映射关系，用于更智能的匹配
+        # Create mapping of main industries to sub-industries for smarter matching
         main_industries = {
             "healthcare": ["physician offices", "specialty clinics", "home health", "hospitals", 
                           "pharmaceutical", "biotechnology", "medical instrument", "health insurance", 
@@ -133,43 +133,43 @@ def get_news(industries: Optional[List[str]] = None, search_query: Optional[str]
         
         for article in all_news:
             try:
-                # 获取文章的行业/主题
+                # Get article industries/topics
                 article_industries = [topic.get('topic', '').strip() if isinstance(topic, dict) else topic.strip() 
                                    for topic in article.get("topics", [])]
                 article_title = article.get("title", "").lower()
                 article_summary = article.get("summary", "").lower()
                 
-                # 默认不匹配
+                # Default to not matching
                 matched = False
                 
-                # 如果有搜索查询，优先按搜索查询过滤
+                # If there's a search query, prioritize filtering by search query
                 if search_query_lower:
                     if (search_query_lower in article_title or 
                         search_query_lower in article_summary or
                         any(search_query_lower in topic.lower() for topic in article_industries)):
                         matched = True
-                # 否则，如果有选择行业，严格按照选中的行业过滤
+                # Otherwise, if industries are selected, strictly filter by selected industries
                 elif industries and industries_lower:
-                    # 检查是否匹配主行业或子行业
+                    # Check if matches main industry or sub-industry
                     for industry_lower in industries_lower:
-                        # 直接匹配行业名称
+                        # Direct match of industry name
                         if (industry_lower in article_title or
                             industry_lower in article_summary or
                             any(industry_lower in topic.lower() for topic in article_industries)):
                             matched = True
                             break
                             
-                        # 智能匹配主行业的相关关键词
+                        # Smart matching of main industry related keywords
                         for main_industry, keywords in main_industries.items():
                             if industry_lower == main_industry:
-                                # 如果选择了主行业，检查是否包含任何相关关键词
+                                # If main industry is selected, check if it contains any related keywords
                                 if any(keyword in article_title or 
                                        keyword in article_summary or
                                        any(keyword in topic.lower() for topic in article_industries)
                                        for keyword in keywords):
                                     matched = True
                                     break
-                            # 如果选择了子行业，检查是否匹配该子行业
+                            # If sub-industry is selected, check if it matches that sub-industry
                             elif any(keyword in industry_lower for keyword in keywords):
                                 if (industry_lower in article_title or
                                     industry_lower in article_summary or
@@ -177,7 +177,7 @@ def get_news(industries: Optional[List[str]] = None, search_query: Optional[str]
                                     matched = True
                                     break
                 else:
-                    # 如果没有选择任何行业也没有搜索查询，显示一个特殊消息
+                    # If no industries are selected and no search query, show a special message
                     matched = False
                 
                 if matched:
@@ -188,7 +188,7 @@ def get_news(industries: Optional[List[str]] = None, search_query: Optional[str]
                         "url": article.get("url", "#"),
                         "sentiment": sentiment_score,
                         "sentiment_abs": abs(sentiment_score),
-                        "industries": article_industries,  # 使用处理过的主题列表
+                        "industries": article_industries,  # Use processed topic list
                         "time_published": article.get("time_published", ""),
                         "raw_time_published": article.get("time_published", ""),
                         "formatted_time": format_timestamp(article.get("time_published", ""))

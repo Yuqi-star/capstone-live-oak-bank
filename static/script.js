@@ -138,7 +138,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Initially show sub-industries
             mainCheckboxContainer.classList.add('expanded');
+            if (subIndustriesContainer) {
+                subIndustriesContainer.style.display = 'flex';
+            }
             
+            // Toggle functionality to show/hide sub-industries
             toggle.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -600,16 +604,24 @@ function saveCurrentPageState() {
 
 // Load page content via AJAX
 function loadPageContent(url) {
+    console.log("加载页面内容:", url);
+    
     // Show loading indicator
     showLoading();
     
     // Add a parameter to indicate this is an AJAX request
     const ajaxUrl = url + (url.includes('?') ? '&' : '?') + 'ajax=true';
+    console.log("AJAX URL:", ajaxUrl);
     
     // Fetch the page content
     fetch(ajaxUrl)
-        .then(response => response.text())
+        .then(response => {
+            console.log("AJAX响应状态:", response.status);
+            return response.text();
+        })
         .then(html => {
+            console.log("收到HTML响应，长度:", html.length);
+            
             // Parse the HTML
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
@@ -618,23 +630,31 @@ function loadPageContent(url) {
             const contentWrapper = doc.querySelector('.content-wrapper') || 
                                   doc.querySelector('.risk-dashboard-wrapper');
             
+            console.log("找到内容包装器:", contentWrapper ? true : false);
+            
             // Replace the current content wrapper with the new one
             const currentContentWrapper = document.querySelector('.content-wrapper') || 
                                          document.querySelector('.risk-dashboard-wrapper');
             
+            console.log("当前内容包装器:", currentContentWrapper ? true : false);
+            
             if (contentWrapper && currentContentWrapper) {
                 currentContentWrapper.replaceWith(contentWrapper);
+                console.log("内容已替换");
                 
                 // Update the page URL without refreshing
                 history.pushState({}, '', url);
+                console.log("URL已更新:", url);
                 
                 // Restore saved state if available
                 restorePageState(url);
                 
                 // Reinitialize page-specific functionality
                 initializePageFunctionality(url);
+                console.log("页面功能已重新初始化");
             } else {
                 // Fallback to traditional navigation if content wrapper not found
+                console.log("未找到内容包装器，回退到传统导航");
                 window.location.href = url;
             }
             
@@ -642,9 +662,10 @@ function loadPageContent(url) {
             hideLoading();
         })
         .catch(error => {
-            console.error('Error loading page content:', error);
+            console.error('加载页面内容时出错:', error);
             // Fallback to traditional navigation on error
             window.location.href = url;
+            hideLoading();
         });
 }
 
@@ -701,6 +722,8 @@ function restorePageState(url) {
 
 // Initialize page-specific functionality
 function initializePageFunctionality(url) {
+    console.log("初始化页面功能: " + url);
+    
     if (url.includes('/dashboard')) {
         // Initialize dashboard functionality
         initializeCheckboxes();
@@ -779,24 +802,40 @@ function initializePageFunctionality(url) {
         });
     } 
     else if (url.includes('/companies')) {
-        // Initialize companies page functionality
+        console.log("初始化公司搜索功能");
         
-        // Reattach event listeners for company search
+        // Company search input
         const companySearchInput = document.getElementById('companySearchInput');
         const companySearchButton = document.getElementById('companySearchButton');
         
-        if (companySearchInput && companySearchButton) {
+        console.log("搜索输入框:", companySearchInput);
+        console.log("搜索按钮:", companySearchButton);
+        
+        if (companySearchButton) {
             companySearchButton.addEventListener('click', function() {
-                const searchQuery = companySearchInput.value.trim();
+                console.log("公司搜索按钮被点击");
+                const searchQuery = companySearchInput ? companySearchInput.value.trim() : '';
+                console.log("搜索查询:", searchQuery);
                 filterCompanies(searchQuery);
             });
-            
+        }
+        
+        if (companySearchInput) {
             companySearchInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
+                    console.log("在搜索输入框中按下Enter键");
                     const searchQuery = this.value.trim();
+                    console.log("搜索查询:", searchQuery);
                     filterCompanies(searchQuery);
                 }
             });
+            
+            // 确保搜索输入框有焦点
+            setTimeout(() => {
+                if (companySearchInput.value) {
+                    console.log("搜索输入框已有值:", companySearchInput.value);
+                }
+            }, 500);
         }
         
         // Reattach event listeners for risk filters
@@ -810,13 +849,31 @@ function initializePageFunctionality(url) {
         
         // Reattach company detail view functionality
         const companyRows = document.querySelectorAll('.company-row');
+        console.log("找到公司行:", companyRows.length);
+        
         companyRows.forEach(row => {
             row.addEventListener('click', function() {
                 const companyId = this.getAttribute('data-company-id');
+                console.log("点击公司行:", companyId);
                 if (companyId) {
                     showCompanyDetails(companyId);
+                } else {
+                    console.log("公司行没有data-company-id属性");
                 }
             });
+            
+            // 添加查看详情按钮的点击事件
+            const viewDetailsBtn = row.querySelector('.view-details');
+            if (viewDetailsBtn) {
+                viewDetailsBtn.addEventListener('click', function(e) {
+                    e.stopPropagation(); // 防止触发行的点击事件
+                    const companyId = row.getAttribute('data-company-id');
+                    console.log("点击查看详情按钮:", companyId);
+                    if (companyId) {
+                        showCompanyDetails(companyId);
+                    }
+                });
+            }
         });
     }
     
@@ -826,6 +883,7 @@ function initializePageFunctionality(url) {
 
 // Filter companies by search query
 function filterCompanies(query) {
+    console.log("过滤公司，查询:", query);
     const params = new URLSearchParams(window.location.search);
     
     if (query) {
@@ -836,17 +894,22 @@ function filterCompanies(query) {
     
     // Keep risk filter if present
     const riskFilter = document.querySelector('input[name="risk-filter"]:checked')?.value;
-    if (riskFilter) {
+    console.log("当前风险筛选:", riskFilter);
+    
+    if (riskFilter && riskFilter !== 'all') {
         params.set('risk', riskFilter);
     } else {
         params.delete('risk');
     }
     
+    const url = `/companies?${params.toString()}`;
+    console.log("加载URL:", url);
+    
     // Show loading indicator
     showLoading();
     
     // Load filtered companies
-    loadPageContent(`/companies?${params.toString()}`);
+    loadPageContent(url);
 }
 
 // Filter companies by risk level
@@ -876,16 +939,22 @@ function filterCompaniesByRisk(riskLevel) {
 
 // Show company details
 function showCompanyDetails(companyId) {
+    console.log("显示公司详情:", companyId);
+    
     // Implementation depends on how company details are displayed
     // This could open a modal or navigate to a detail page
     const detailModal = document.getElementById(`company-detail-${companyId}`);
+    console.log("找到模态框:", detailModal ? true : false);
+    
     if (detailModal) {
         detailModal.style.display = 'block';
+        console.log("模态框已显示");
         
         // Add close functionality
         const closeButton = detailModal.querySelector('.close-modal');
         if (closeButton) {
             closeButton.addEventListener('click', function() {
+                console.log("关闭按钮被点击");
                 detailModal.style.display = 'none';
             });
         }
@@ -893,9 +962,12 @@ function showCompanyDetails(companyId) {
         // Close when clicking outside the modal
         window.addEventListener('click', function(e) {
             if (e.target === detailModal) {
+                console.log("点击模态框外部");
                 detailModal.style.display = 'none';
             }
         });
+    } else {
+        console.log("未找到公司详情模态框");
     }
 }
 
