@@ -277,6 +277,24 @@ def companies():
                     company_data['risk_level'] = 'medium'
                 else:
                     company_data['risk_level'] = 'high'
+                
+                # Add Loss Given Default (LGD) - typically ranges from 0.3 to 0.6 depending on risk level
+                if company_data['risk_level'] == 'low':
+                    company_data['Loss Given Default'] = 0.35
+                elif company_data['risk_level'] == 'medium':
+                    company_data['Loss Given Default'] = 0.45
+                else:  # high risk
+                    company_data['Loss Given Default'] = 0.55
+                
+                # Recalculate Expected Loss using PD * LGD * Exposure
+                # If Exposure/Loan Amount is not available, use a default value or the existing Expected Loss
+                lgd = company_data.get('Loss Given Default', 0.45)
+                exposure = company_data.get('Loan Amount', 1000000)  # Default to 1M if not available
+                
+                # Update Expected Loss calculation
+                if 'Expected Loss' in company_data:
+                    # Recalculate using the new LGD value
+                    company_data['Expected Loss'] = pd * lgd * exposure
                     
                 companies_data.append(company_data)
             

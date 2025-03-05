@@ -1,6 +1,7 @@
 Flask
 requests
 textblob
-python-capitaliq
+# python-capitaliq
 yfinance
 pandas
+gunicorn

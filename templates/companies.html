@@ -179,6 +179,10 @@
                                 <p class="metric-value">{{ "%.2f"|format(company['Probability of Default'] * 100) }}%</p>
                             </div>
                             <div class="metric-card">
+                                <h4>Loss Given Default</h4>
+                                <p class="metric-value">{{ "%.2f"|format(company.get('Loss Given Default', 0.45) * 100) }}%</p>
+                            </div>
+                            <div class="metric-card">
                                 <h4>Expected Loss</h4>
                                 <p class="metric-value">${{ "%.2f"|format(company['Expected Loss']) }}</p>
                             </div>
@@ -201,10 +205,6 @@
                                 <p class="metric-value">{{ "%.2f"|format(company['Current Ratio']) }}</p>
                             </div>
                             <div class="metric-card">
-                                <h4>Cash Ratio</h4>
-                                <p class="metric-value">{{ "%.2f"|format(company['Cash Ratio']) }}</p>
-                            </div>
-                            <div class="metric-card">
                                 <h4>ROA</h4>
                                 <p class="metric-value">{{ "%.2f"|format(company['ROA'] * 100) }}%</p>
                             </div>
@@ -215,10 +215,6 @@
                             <div class="metric-card">
                                 <h4>Leverage Ratio</h4>
                                 <p class="metric-value">{{ "%.2f"|format(company['Leverage Ratio']) }}</p>
-                            </div>
-                            <div class="metric-card">
-                                <h4>Ex Ante Risk Cost</h4>
-                                <p class="metric-value">${{ "%.2f"|format(company['Ex Ante Risk Cost']) }}</p>
                             </div>
                         </div>
                     </div>
