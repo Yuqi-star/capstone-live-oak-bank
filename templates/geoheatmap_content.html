@@ -1,0 +1,144 @@
+<div class="dashboard-content">
+    <div class="filters">
+        <h2><i class="fas fa-sliders-h"></i> Heatmap Controls</h2>
+        
+        <div class="control-group">
+            <h3><i class="fas fa-chart-pie"></i> Select Metric</h3>
+            <div class="heatmap-options">
+                <div class="radio-option">
+                    <input type="radio" id="revenue" name="metric" value="revenue" checked>
+                    <label for="revenue">Revenue</label>
+                </div>
+                <div class="radio-option">
+                    <input type="radio" id="pd" name="metric" value="pd">
+                    <label for="pd">Probability of Default</label>
+                </div>
+                <div class="radio-option">
+                    <input type="radio" id="risk" name="metric" value="risk">
+                    <label for="risk">Risk Level</label>
+                </div>
+                <div class="radio-option">
+                    <input type="radio" id="fcr" name="metric" value="fcr">
+                    <label for="fcr">Financial Coverage Ratio</label>
+                </div>
+                <div class="radio-option">
+                    <input type="radio" id="cr" name="metric" value="cr">
+                    <label for="cr">Current Ratio</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h3><i class="fas fa-industry"></i> Filter by Industry</h3>
+            <div class="dropdown-wrapper">
+                <select id="industry-filter" class="dropdown">
+                    <option value="all">All Industries</option>
+                    <option value="healthcare">Healthcare</option>
+                    <option value="solar">Solar Energy</option>
+                    <option value="technology">Technology</option>
+                    <option value="ai">AI</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h3><i class="fas fa-users"></i> Client Type</h3>
+            <div class="checkbox-options">
+                <div class="checkbox-option">
+                    <input type="checkbox" id="current-clients" name="client-type" value="current" checked>
+                    <label for="current-clients">Current Clients</label>
+                </div>
+                <div class="checkbox-option">
+                    <input type="checkbox" id="potential-clients" name="client-type" value="potential" checked>
+                    <label for="potential-clients">Potential Clients</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h3><i class="fas fa-info-circle"></i> Legend</h3>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #4caf50;"></div>
+                    <div class="legend-label">Low Risk / High Performance</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ffce56;"></div>
+                    <div class="legend-label">Medium Risk / Average Performance</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ff5252;"></div>
+                    <div class="legend-label">High Risk / Low Performance</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-marker current"></div>
+                    <div class="legend-label">Current Client</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-marker potential"></div>
+                    <div class="legend-label">Potential Client</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="map-section">
+        <div id="county-map"></div>
+        
+        <!-- County information tooltip -->
+        <div id="map-tooltip">
+            <div class="tooltip-header">
+                <i class="fas fa-map-marker-alt tooltip-icon"></i>
+                <span class="tooltip-county">County Name</span>, <span id="tooltip-state">State</span>
+            </div>
+            
+            <div class="tooltip-metrics">
+                <div class="tooltip-metric">
+                    <span class="tooltip-metric-label">Revenue:</span>
+                    <span class="tooltip-metric-value" id="tooltip-revenue">$0</span>
+                </div>
+                <div class="tooltip-metric">
+                    <span class="tooltip-metric-label">Probability of Default:</span>
+                    <span class="tooltip-metric-value" id="tooltip-pd">0%</span>
+                </div>
+                <div class="tooltip-metric">
+                    <span class="tooltip-metric-label">Financial Coverage Ratio:</span>
+                    <span class="tooltip-metric-value" id="tooltip-fcr">0.0</span>
+                </div>
+                <div class="tooltip-metric">
+                    <span class="tooltip-metric-label">Current Ratio:</span>
+                    <span class="tooltip-metric-value" id="tooltip-cr">0.0</span>
+                </div>
+                <div class="tooltip-metric">
+                    <span class="tooltip-metric-label">Risk Level:</span>
+                    <span class="tooltip-metric-value" id="tooltip-risk">Unknown</span>
+                </div>
+                <div class="tooltip-metric">
+                    <span class="tooltip-metric-label">Clients:</span>
+                    <span class="tooltip-metric-value" id="tooltip-clients">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add styling for the legend markers similar to client markers -->
+<style>
+    .legend-marker {
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    
+    .legend-marker.current {
+        background-color: #4caf50;
+        border: 2px solid #2e7d32;
+    }
+    
+    .legend-marker.potential {
+        background-color: #2196f3;
+        border: 2px solid #1565c0;
+    }
+</style> 

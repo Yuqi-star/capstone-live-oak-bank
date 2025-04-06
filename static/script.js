@@ -319,47 +319,39 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Show loading indicator
-    function showLoading() {
-        // Add loading class to body
-        document.body.classList.add('loading');
-        
-        // Add loading styles if they don't exist
-        if (!document.getElementById('loading-styles')) {
-            const style = document.createElement('style');
-            style.id = 'loading-styles';
-            style.textContent = `
-                body.loading::after {
-                    content: '';
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(255, 255, 255, 0.7);
-                    z-index: 9999;
-                }
-                
-                body.loading::before {
-                    content: '';
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    width: 40px;
-                    height: 40px;
-                    border: 4px solid var(--primary-light);
-                    border-top: 4px solid var(--primary-color);
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                    z-index: 10000;
-                }
-                
-                @keyframes spin {
-                    0% { transform: translate(-50%, -50%) rotate(0deg); }
-                    100% { transform: translate(-50%, -50%) rotate(360deg); }
-                }
+    function showLoading(message = 'Loading...') {
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) {
+            const messageElement = overlay.querySelector('.loading-spinner span');
+            if (messageElement) {
+                messageElement.textContent = message;
+            }
+            overlay.style.display = 'flex';
+        } else {
+            // Create loading overlay if it doesn't exist
+            const newOverlay = document.createElement('div');
+            newOverlay.id = 'loading-overlay';
+            newOverlay.innerHTML = `
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>${message}</span>
+                </div>
             `;
-            document.head.appendChild(style);
+            newOverlay.style.display = 'flex';
+            document.body.appendChild(newOverlay);
+        }
+    }
+    
+    // Hide loading indicator
+    function hideLoading() {
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) {
+            overlay.style.display = 'none';
+            // Reset the message to default
+            const messageElement = overlay.querySelector('.loading-spinner span');
+            if (messageElement) {
+                messageElement.textContent = 'Loading...';
+            }
         }
     }
     
@@ -548,17 +540,442 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     })();
+
+    // Alert and Report Modal Functionality
+    const notifyEmail = document.getElementById('notifyEmail');
+    const notifySMS = document.getElementById('notifySMS');
+    const emailField = document.getElementById('emailField');
+    const phoneField = document.getElementById('phoneField');
+    const deliveryEmail = document.getElementById('deliveryEmail');
+    const reportEmailField = document.getElementById('reportEmailField');
+
+    if (notifyEmail) {
+        notifyEmail.addEventListener('change', function() {
+            emailField.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+
+    if (notifySMS) {
+        notifySMS.addEventListener('change', function() {
+            phoneField.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+
+    if (deliveryEmail) {
+        deliveryEmail.addEventListener('change', function() {
+            reportEmailField.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+
+    // Handle alert button clicks
+    const alertButtons = document.querySelectorAll('.add-alert');
+    alertButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const companyName = this.getAttribute('data-company');
+            document.getElementById('alertCompanyName').value = companyName;
+            document.querySelector('#alertModal .company-name').textContent = companyName;
+            new bootstrap.Modal(document.getElementById('alertModal')).show();
+        });
+    });
+
+    // Handle report button clicks
+    const reportButtons = document.querySelectorAll('.modal-btn.primary');
+    reportButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const companyName = this.closest('.modal-content').querySelector('#modalCompanyName').textContent;
+            document.getElementById('reportCompanyName').value = companyName;
+            document.querySelector('#reportModal .company-name').textContent = companyName;
+            new bootstrap.Modal(document.getElementById('reportModal')).show();
+        });
+    });
+
+    // 表格排序功能
+    const table = document.querySelector('.risk-table table');
+    if (!table) return;
+    
+    // 获取表头和行
+    const headers = table.querySelectorAll('th.sortable');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // 当前排序状态
+    let currentSort = {
+        column: 'pd',
+        direction: 'desc'
+    };
+    
+    // 初始排序（按照违约概率降序）
+    sortTable('pd', 'desc');
+    
+    // 为每个可排序的表头添加点击事件
+    headers.forEach(header => {
+        header.addEventListener('click', function() {
+            const column = this.getAttribute('data-sort');
+            let direction = 'asc';
+            
+            // 如果已经按该列排序，则切换排序方向
+            if (currentSort.column === column) {
+                direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            }
+            
+            // 执行排序
+            sortTable(column, direction);
+            
+            // 更新排序图标
+            updateSortIcons(column, direction);
+            
+            // 更新当前排序状态
+            currentSort = { column, direction };
+        });
+    });
+    
+    // 排序表格
+    function sortTable(column, direction) {
+        const sortedRows = rows.sort((a, b) => {
+            let aValue = getCellValue(a, column);
+            let bValue = getCellValue(b, column);
+            
+            // 根据列的不同，可能需要特殊的排序逻辑
+            if (column === 'pd' || column === 'roe') {
+                // 提取百分比数值
+                aValue = parseFloat(aValue.replace('%', ''));
+                bValue = parseFloat(bValue.replace('%', ''));
+            } else if (column === 'expected_loss') {
+                // 提取美元值
+                aValue = parseFloat(aValue.replace('$', '').replace(',', ''));
+                bValue = parseFloat(bValue.replace('$', '').replace(',', ''));
+            } else if (column === 'coverage_ratio' || column === 'leverage_ratio' || column === 'current_ratio') {
+                // 提取数值
+                aValue = parseFloat(aValue.replace('x', ''));
+                bValue = parseFloat(bValue.replace('x', ''));
+            } else if (column === 'rating') {
+                // 信用评级排序逻辑
+                const ratingOrder = {
+                    'AAA': 1, 'AA+': 2, 'AA': 3, 'AA-': 4, 'A+': 5, 'A': 6, 'A-': 7,
+                    'BBB+': 8, 'BBB': 9, 'BBB-': 10, 'BB+': 11, 'BB': 12, 'BB-': 13,
+                    'B+': 14, 'B': 15, 'B-': 16, 'CCC+': 17, 'CCC': 18, 'CCC-': 19
+                };
+                aValue = ratingOrder[aValue] || 20;
+                bValue = ratingOrder[bValue] || 20;
+            } else if (column === 'risk_level') {
+                // 风险级别排序逻辑
+                const riskOrder = { 'Low': 1, 'Medium': 2, 'High': 3 };
+                aValue = riskOrder[aValue] || 0;
+                bValue = riskOrder[bValue] || 0;
+            }
+            
+            // 比较值
+            if (aValue < bValue) {
+                return direction === 'asc' ? -1 : 1;
+            }
+            if (aValue > bValue) {
+                return direction === 'asc' ? 1 : -1;
+            }
+            return 0;
+        });
+        
+        // 将排序后的行重新添加到表格中
+        sortedRows.forEach(row => tbody.appendChild(row));
+    }
+    
+    // 获取单元格的值
+    function getCellValue(row, column) {
+        const cellIndex = {
+            'company': 0,
+            'rating': 1,
+            'pd': 2,
+            'expected_loss': 3,
+            'current_ratio': 4,
+            'roe': 5,
+            'leverage_ratio': 6,
+            'coverage_ratio': 7,
+            'risk_level': 8
+        };
+        
+        const index = cellIndex[column];
+        const cell = row.querySelectorAll('td')[index];
+        
+        // 对于风险级别，获取徽章内的文本
+        if (column === 'risk_level') {
+            return cell.querySelector('.risk-badge').textContent.trim();
+        }
+        
+        // 对于覆盖率，获取span内的文本
+        if (column === 'coverage_ratio') {
+            return cell.querySelector('.coverage-ratio').textContent.trim();
+        }
+        
+        return cell.textContent.trim();
+    }
+    
+    // 更新排序图标
+    function updateSortIcons(activeColumn, direction) {
+        headers.forEach(header => {
+            const column = header.getAttribute('data-sort');
+            const icon = header.querySelector('i.fas');
+            
+            if (column === activeColumn) {
+                icon.className = direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+            } else {
+                icon.className = 'fas fa-sort';
+            }
+        });
+    }
+    
+    // 初始排序图标设置
+    updateSortIcons(currentSort.column, currentSort.direction);
+
+    // Initialize when document is ready - this is the entry point
+    console.log('Document ready, initializing all functionality');
+    
+    // Initialize functionality based on current URL
+    initializePageFunctionality(window.location.pathname);
 });
+
+function submitAlert() {
+    console.log("Running submitAlert function");
+    
+    // Show loading indicator
+    showLoading("Setting up alert...");
+    
+    const form = document.getElementById('alertForm');
+    if (!form) {
+        console.error("Alert form not found");
+        hideLoading();
+        return;
+    }
+    
+    const formData = new FormData(form);
+    const data = {
+        company_name: formData.get('company_name'),
+        metric: formData.get('metric'),
+        condition: formData.get('condition'),
+        threshold: parseFloat(formData.get('threshold')),
+        notify_email: formData.get('notify_email') === 'on',
+        notify_sms: formData.get('notify_sms') === 'on',
+        notify_dashboard: formData.get('notify_dashboard') === 'on' || true, // Default to true if not specified
+        email: formData.get('email'),
+        phone: formData.get('phone')
+    };
+    
+    console.log("Alert data:", data);
+
+    // Validate form
+    if (!data.company_name) {
+        hideLoading();
+        showNotification('Please select a company', 'error');
+        return;
+    }
+    
+    if (!data.metric || !data.condition || isNaN(data.threshold)) {
+        hideLoading();
+        showNotification('Please fill in all required fields', 'error');
+        return;
+    }
+
+    if (data.notify_email && !data.email) {
+        hideLoading();
+        showNotification('Please provide an email address for email notifications', 'error');
+        return;
+    }
+
+    if (data.notify_sms && !data.phone) {
+        hideLoading();
+        showNotification('Please provide a phone number for SMS notifications', 'error');
+        return;
+    }
+    
+    // Check that at least one notification method is selected
+    if (!data.notify_email && !data.notify_sms && !data.notify_dashboard) {
+        hideLoading();
+        showNotification('Please select at least one notification method', 'error');
+        return;
+    }
+
+    // Submit alert
+    fetch('/api/set_alert', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        console.log("API response status:", response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(result => {
+        hideLoading();
+        console.log("API result:", result);
+        if (result.success) {
+            showNotification(`Alert set successfully for ${data.company_name}: ${data.metric} ${data.condition} ${data.threshold}`, 'success');
+            
+            // Close modal
+            const modalElement = document.getElementById('alertModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+            
+            form.reset();
+        } else {
+            showNotification(result.message || 'Error setting alert', 'error');
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        showNotification('Error setting alert: ' + error.message, 'error');
+        console.error('Error:', error);
+    });
+}
+
+function submitReport() {
+    console.log("Running submitReport function");
+    
+    // Show loading indicator
+    showLoading("Generating report...");
+    
+    const form = document.getElementById('reportForm');
+    if (!form) {
+        console.error("Report form not found");
+        hideLoading();
+        return;
+    }
+    
+    // Get all checked sections checkboxes
+    const sectionsCheckboxes = form.querySelectorAll('input[name="sections"]:checked');
+    const sections = Array.from(sectionsCheckboxes).map(cb => cb.value);
+    
+    const formData = new FormData(form);
+    const data = {
+        company_name: formData.get('company_name'),
+        sections: sections,
+        schedule: formData.get('schedule'),
+        delivery_email: formData.get('delivery_email') === 'on',
+        delivery_download: formData.get('delivery_download') === 'on' || true, // Default to true if not specified
+        email: formData.get('email')
+    };
+    
+    console.log("Report data:", data);
+
+    // Validate form
+    if (!data.company_name) {
+        hideLoading();
+        showNotification('Please select a company', 'error');
+        return;
+    }
+    
+    if (sections.length === 0) {
+        hideLoading();
+        showNotification('Please select at least one report section', 'error');
+        return;
+    }
+
+    if (data.delivery_email && !data.email) {
+        hideLoading();
+        showNotification('Please provide an email address for email delivery', 'error');
+        return;
+    }
+    
+    // Check that at least one delivery method is selected
+    if (!data.delivery_email && !data.delivery_download) {
+        hideLoading();
+        showNotification('Please select at least one delivery method', 'error');
+        return;
+    }
+
+    // Submit report request
+    fetch('/api/generate_report', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        console.log("API response status:", response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(result => {
+        hideLoading();
+        console.log("API result:", result);
+        if (result.success) {
+            let scheduleText = '';
+            if (data.schedule !== 'once') {
+                scheduleText = ` (${data.schedule} schedule)`;
+            }
+            
+            showNotification(`Report for ${data.company_name} generated successfully${scheduleText}`, 'success');
+            
+            // Close modal
+            const modalElement = document.getElementById('reportModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+            
+            form.reset();
+            
+            // If download URL is provided, trigger download after a brief delay
+            if (result.download_url) {
+                setTimeout(() => {
+                    console.log("Opening download URL:", result.download_url);
+                    window.location.href = result.download_url;
+                }, 500);
+            }
+        } else {
+            showNotification(result.message || 'Error generating report', 'error');
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        showNotification('Error generating report: ' + error.message, 'error');
+        console.error('Error:', error);
+    });
+}
+
+function showNotification(message, type = 'success') {
+    const alertElement = document.createElement('div');
+    alertElement.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    alertElement.setAttribute('role', 'alert');
+    alertElement.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    document.body.appendChild(alertElement);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        alertElement.remove();
+    }, 5000);
+}
 
 // Setup smooth page transitions between dashboard and companies pages
 function setupSmoothPageTransitions() {
+    console.log("Setting up smooth page transitions");
+    
     // Get navigation links
     const navLinks = document.querySelectorAll('.main-nav a');
+    console.log("Number of navigation links found:", navLinks.length);
+    
+    // Remove any existing event listeners (to prevent duplicates)
+    navLinks.forEach(link => {
+        // Clone the node to remove all event listeners
+        const newLink = link.cloneNode(true);
+        link.parentNode.replaceChild(newLink, link);
+    });
     
     // Add click event listeners to navigation links
-    navLinks.forEach(link => {
+    document.querySelectorAll('.main-nav a').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
+            console.log("Navigation link clicked:", this.href);
             
             // Get the target URL
             const targetUrl = this.getAttribute('href');
@@ -607,7 +1024,7 @@ function loadPageContent(url) {
     console.log("加载页面内容:", url);
     
     // Show loading indicator
-    showLoading();
+    showLoading("Loading page...");
     
     // Add a parameter to indicate this is an AJAX request
     const ajaxUrl = url + (url.includes('?') ? '&' : '?') + 'ajax=true';
@@ -617,6 +1034,9 @@ function loadPageContent(url) {
     fetch(ajaxUrl)
         .then(response => {
             console.log("AJAX响应状态:", response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
             return response.text();
         })
         .then(html => {
@@ -626,35 +1046,41 @@ function loadPageContent(url) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
             
-            // Extract the content wrapper
-            const contentWrapper = doc.querySelector('.content-wrapper') || 
-                                  doc.querySelector('.risk-dashboard-wrapper');
+            // Determine which type of page is being loaded
+            let contentWrapper;
+            let currentContentWrapper;
+            
+            if (url.includes('/dashboard')) {
+                // For dashboard page
+                contentWrapper = doc.querySelector('.content-wrapper');
+                currentContentWrapper = document.querySelector('.content-wrapper, .risk-dashboard-wrapper, .profiles-dashboard-wrapper');
+            } else if (url.includes('/companies')) {
+                // For companies/credit risk page
+                contentWrapper = doc.querySelector('.risk-dashboard-wrapper');
+                currentContentWrapper = document.querySelector('.content-wrapper, .risk-dashboard-wrapper, .profiles-dashboard-wrapper');
+            } else if (url.includes('/company_profiles')) {
+                // For company profiles page
+                contentWrapper = doc.querySelector('.profiles-dashboard-wrapper');
+                currentContentWrapper = document.querySelector('.content-wrapper, .risk-dashboard-wrapper, .profiles-dashboard-wrapper');
+            }
             
             console.log("找到内容包装器:", contentWrapper ? true : false);
-            
-            // Replace the current content wrapper with the new one
-            const currentContentWrapper = document.querySelector('.content-wrapper') || 
-                                         document.querySelector('.risk-dashboard-wrapper');
-            
             console.log("当前内容包装器:", currentContentWrapper ? true : false);
             
             if (contentWrapper && currentContentWrapper) {
+                // Replace content and update URL
                 currentContentWrapper.replaceWith(contentWrapper);
-                console.log("内容已替换");
-                
-                // Update the page URL without refreshing
                 history.pushState({}, '', url);
-                console.log("URL已更新:", url);
+                console.log("内容已替换, URL已更新:", url);
                 
-                // Restore saved state if available
+                // Restore saved state and initialize functionality
                 restorePageState(url);
-                
-                // Reinitialize page-specific functionality
                 initializePageFunctionality(url);
-                console.log("页面功能已重新初始化");
+                
+                // Setup page transitions again for the new content
+                setupSmoothPageTransitions();
             } else {
-                // Fallback to traditional navigation if content wrapper not found
-                console.log("未找到内容包装器，回退到传统导航");
+                console.log("未找到内容包装器或当前内容包装器，回退到传统导航");
                 window.location.href = url;
             }
             
@@ -722,163 +1148,390 @@ function restorePageState(url) {
 
 // Initialize page-specific functionality
 function initializePageFunctionality(url) {
-    console.log("初始化页面功能: " + url);
+    console.log('Initializing functionality for:', url);
+    
+    // Common functionality for all pages
+    setupSmoothPageTransitions();
+    
+    // Initialize bootstrap modals
+    initializeModals();
     
     if (url.includes('/dashboard')) {
-        // Initialize dashboard functionality
+        // Initialize dashboard specific functionality
+        console.log('Initializing dashboard functionality');
         initializeCheckboxes();
+        initializeIndustryToggles();
         
-        // Reattach event listeners
-        const searchInput = document.getElementById('searchInput');
-        const searchButton = document.getElementById('searchButton');
-        const selectAllCheckbox = document.getElementById('selectAll');
-        const industryCheckboxes = document.querySelectorAll('input[name="industry"]');
-        
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                const searchQuery = this.value.trim();
-                if (searchQuery.length > 0) {
-                    showSearchSuggestions(searchQuery);
-                } else {
-                    hideSearchSuggestions();
-                }
-            });
-            
-            searchInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    const searchQuery = this.value.trim();
-                    if (searchQuery) {
-                        performSearch(searchQuery);
-                    }
-                }
-            });
-        }
-        
-        if (searchButton) {
-            searchButton.addEventListener('click', function() {
-                const searchQuery = searchInput.value.trim();
-                if (searchQuery) {
-                    performSearch(searchQuery);
-                }
-            });
-        }
-        
-        if (selectAllCheckbox) {
-            selectAllCheckbox.addEventListener('change', function() {
-                const newState = this.checked;
-                industryCheckboxes.forEach(cb => {
-                    cb.checked = newState;
-                });
-                updateResults();
-            });
-        }
-        
-        industryCheckboxes.forEach(cb => {
-            cb.addEventListener('change', function() {
-                const allChecked = Array.from(industryCheckboxes).every(cb => cb.checked);
-                const someChecked = Array.from(industryCheckboxes).some(cb => cb.checked);
-                
-                if (selectAllCheckbox) {
-                    selectAllCheckbox.checked = allChecked;
-                    selectAllCheckbox.indeterminate = !allChecked && someChecked;
-                }
-                
-                updateResults();
-            });
+        document.querySelector('#searchInput').addEventListener('input', function() {
+            if (this.value.length > 2) {
+                showSearchSuggestions(this.value);
+            } else {
+                hideSearchSuggestions();
+            }
         });
         
-        // Reattach delete industry buttons
-        const deleteButtons = document.querySelectorAll('.delete-industry');
-        deleteButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                const industry = this.getAttribute('data-industry');
-                const username = new URLSearchParams(window.location.search).get('username');
-                if (industry && username) {
-                    deleteIndustry(industry, username);
-                }
-            });
+        document.querySelector('#searchButton').addEventListener('click', function() {
+            const query = document.querySelector('#searchInput').value;
+            performSearch(query);
+        });
+        
+        document.querySelector('#searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch(this.value);
+            }
         });
     } 
     else if (url.includes('/companies')) {
-        console.log("初始化公司搜索功能");
+        // Initialize companies page specific functionality
+        console.log('Initializing companies functionality');
         
-        // Company search input
-        const companySearchInput = document.getElementById('companySearchInput');
-        const companySearchButton = document.getElementById('companySearchButton');
-        
-        console.log("搜索输入框:", companySearchInput);
-        console.log("搜索按钮:", companySearchButton);
-        
-        if (companySearchButton) {
-            companySearchButton.addEventListener('click', function() {
-                console.log("公司搜索按钮被点击");
-                const searchQuery = companySearchInput ? companySearchInput.value.trim() : '';
-                console.log("搜索查询:", searchQuery);
-                filterCompanies(searchQuery);
-            });
-        }
-        
-        if (companySearchInput) {
-            companySearchInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    console.log("在搜索输入框中按下Enter键");
-                    const searchQuery = this.value.trim();
-                    console.log("搜索查询:", searchQuery);
-                    filterCompanies(searchQuery);
-                }
-            });
-            
-            // 确保搜索输入框有焦点
-            setTimeout(() => {
-                if (companySearchInput.value) {
-                    console.log("搜索输入框已有值:", companySearchInput.value);
-                }
-            }, 500);
-        }
-        
-        // Reattach event listeners for risk filters
-        const riskFilters = document.querySelectorAll('input[name="risk-filter"]');
-        riskFilters.forEach(filter => {
-            filter.addEventListener('change', function() {
-                const riskLevel = this.value;
-                filterCompaniesByRisk(riskLevel);
+        // Initialize risk filter radio buttons
+        document.querySelectorAll('input[name="risk-filter"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                filterCompaniesByRisk(this.value);
             });
         });
         
-        // Reattach company detail view functionality
-        const companyRows = document.querySelectorAll('.company-row');
-        console.log("找到公司行:", companyRows.length);
+        // Initialize search functionality
+        document.getElementById('companySearchButton')?.addEventListener('click', function() {
+            const query = document.getElementById('companySearchInput').value;
+            filterCompanies(query);
+        });
         
-        companyRows.forEach(row => {
-            row.addEventListener('click', function() {
-                const companyId = this.getAttribute('data-company-id');
-                console.log("点击公司行:", companyId);
-                if (companyId) {
-                    showCompanyDetails(companyId);
-                } else {
-                    console.log("公司行没有data-company-id属性");
-                }
+        document.getElementById('companySearchInput')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                filterCompanies(this.value);
+            }
+        });
+        
+        // Initialize view details buttons
+        document.querySelectorAll('.view-details').forEach(button => {
+            button.addEventListener('click', function() {
+                const companyId = this.closest('tr').getAttribute('data-company-id');
+                showCompanyDetails(companyId);
             });
-            
-            // 添加查看详情按钮的点击事件
-            const viewDetailsBtn = row.querySelector('.view-details');
-            if (viewDetailsBtn) {
-                viewDetailsBtn.addEventListener('click', function(e) {
-                    e.stopPropagation(); // 防止触发行的点击事件
-                    const companyId = row.getAttribute('data-company-id');
-                    console.log("点击查看详情按钮:", companyId);
-                    if (companyId) {
-                        showCompanyDetails(companyId);
-                    }
-                });
+        });
+        
+        // Initialize modal field show/hide logic
+        const notifyEmail = document.getElementById('notifyEmail');
+        const emailField = document.getElementById('emailField');
+        
+        if (notifyEmail && emailField) {
+            notifyEmail.addEventListener('change', function() {
+                emailField.style.display = this.checked ? 'block' : 'none';
+            });
+        }
+        
+        const notifySMS = document.getElementById('notifySMS');
+        const phoneField = document.getElementById('phoneField');
+        
+        if (notifySMS && phoneField) {
+            notifySMS.addEventListener('change', function() {
+                phoneField.style.display = this.checked ? 'block' : 'none';
+            });
+        }
+        
+        const deliveryEmail = document.getElementById('deliveryEmail');
+        const reportEmailField = document.getElementById('reportEmailField');
+        
+        if (deliveryEmail && reportEmailField) {
+            deliveryEmail.addEventListener('change', function() {
+                reportEmailField.style.display = this.checked ? 'block' : 'none';
+            });
+        }
+        
+        // Add listeners for company detail modal buttons
+        document.querySelectorAll('.modal-actions .secondary').forEach(button => {
+            button.addEventListener('click', function() {
+                const modalElement = this.closest('.modal');
+                const companyName = modalElement.querySelector('h2').textContent;
+                showAlertModal(companyName);
+                closeDetailModal(modalElement.id);
+            });
+        });
+        
+        document.querySelectorAll('.modal-actions .primary').forEach(button => {
+            button.addEventListener('click', function() {
+                const modalElement = this.closest('.modal');
+                const companyName = modalElement.querySelector('h2').textContent;
+                showReportModal(companyName);
+                closeDetailModal(modalElement.id);
+            });
+        });
+        
+        // Close modal functionality for custom modals
+        document.querySelectorAll('.close-modal').forEach(button => {
+            button.addEventListener('click', function() {
+                const modalId = this.closest('.modal').id;
+                closeDetailModal(modalId);
+            });
+        });
+    }
+    else if (url.includes('/company_profiles')) {
+        // Initialize company profiles page specific functionality
+        console.log('Initializing company profiles functionality');
+        
+        // Initialize view toggle
+        document.querySelectorAll('.view-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const viewType = this.getAttribute('data-view');
+                document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                const container = document.querySelector('.company-profiles-container');
+                container.classList.remove('grid-view', 'list-view');
+                container.classList.add(viewType + '-view');
+            });
+        });
+        
+        // Initialize search functionality
+        document.getElementById('profilesSearchButton')?.addEventListener('click', function() {
+            const query = document.getElementById('profilesSearchInput').value;
+            // Implement profile search
+        });
+        
+        document.getElementById('profilesSearchInput')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                // Implement profile search
             }
         });
     }
+}
+
+// Initialize modals for alert and report
+function initializeModals() {
+    console.log("Initializing modals");
     
-    // Reattach smooth page transitions
-    setupSmoothPageTransitions();
+    // Initialize company details modals
+    document.querySelectorAll('.view-details').forEach(button => {
+        if (!button.getAttribute('onclick')) {
+            button.addEventListener('click', function() {
+                const companyId = this.closest('tr').dataset.companyId;
+                console.log("View details clicked for company ID:", companyId);
+                showCompanyDetails(companyId);
+            });
+        }
+    });
+    
+    // Initialize Alert Modal Event Listeners
+    const notifyEmailCheckbox = document.getElementById('notifyEmail');
+    const notifySMSCheckbox = document.getElementById('notifySMS');
+    const emailField = document.getElementById('emailField');
+    const phoneField = document.getElementById('phoneField');
+    
+    if (notifyEmailCheckbox) {
+        notifyEmailCheckbox.addEventListener('change', function() {
+            emailField.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+    
+    if (notifySMSCheckbox) {
+        notifySMSCheckbox.addEventListener('change', function() {
+            phoneField.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+    
+    // Initialize Report Modal Event Listeners
+    const deliveryEmailCheckbox = document.getElementById('deliveryEmail');
+    const reportEmailField = document.getElementById('reportEmailField');
+    
+    if (deliveryEmailCheckbox) {
+        deliveryEmailCheckbox.addEventListener('change', function() {
+            reportEmailField.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+    
+    // Custom event listeners for close buttons on detail modals
+    document.querySelectorAll('.close-modal').forEach(button => {
+        button.addEventListener('click', function() {
+            const modal = this.closest('.modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+    
+    // Close custom modals when clicking outside content
+    window.addEventListener('click', function(event) {
+        document.querySelectorAll('.modal:not(.fade)').forEach(modal => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+    
+    // Initialize Generate Report buttons in detail modal
+    document.querySelectorAll('.modal-actions .modal-btn.primary').forEach(button => {
+        button.addEventListener('click', function() {
+            // 关闭当前公司详情模态框
+            const detailModal = this.closest('.modal');
+            if (detailModal) {
+                detailModal.style.display = 'none';
+            }
+            
+            // 获取公司名称并打开报告模态框
+            const companyName = this.getAttribute('data-company');
+            if (companyName) {
+                console.log("Opening report modal for:", companyName);
+                setTimeout(() => {
+                    showReportModal(companyName);
+                }, 100); // 加入短暂延迟让详情模态框完全关闭
+            }
+        });
+    });
+}
+
+// Function to show alert modal
+function showAlertModal(companyName) {
+    console.log("Opening alert modal for:", companyName);
+    
+    // Set company name in the modal title and form
+    document.querySelectorAll('#alertModal .company-name').forEach(function(element) {
+        element.textContent = companyName;
+    });
+    document.getElementById('alertCompanyName').value = companyName;
+    
+    // Reset any previously modified option text first to avoid duplication
+    const metricSelect = document.querySelector('#alertForm select[name="metric"]');
+    if (metricSelect) {
+        const metricOptions = metricSelect.querySelectorAll('option');
+        metricOptions.forEach(option => {
+            // Remove any current value information from previous opens
+            option.textContent = option.textContent.replace(/ \(Current:.*\)$/, '');
+        });
+    }
+    
+    // Fetch current company metrics to help users set thresholds
+    fetch(`/api/company_metrics?company=${encodeURIComponent(companyName)}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error fetching company metrics');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Could pre-fill threshold fields based on current metrics
+                console.log("Retrieved company metrics:", data.metrics);
+                
+                // Add current values to option labels
+                if (metricSelect) {
+                    const metricOptions = metricSelect.querySelectorAll('option');
+                    metricOptions.forEach(option => {
+                        const metricKey = option.value;
+                        if (data.metrics[metricKey] !== undefined) {
+                            option.textContent = `${option.textContent} (Current: ${data.metrics[metricKey]})`;
+                        }
+                    });
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching company metrics:', error);
+        });
+    
+    // Get the modal element
+    const modalElement = document.getElementById('alertModal');
+    
+    // Create a new modal instance or get existing
+    let modalInstance = bootstrap.Modal.getInstance(modalElement);
+    if (!modalInstance) {
+        modalInstance = new bootstrap.Modal(modalElement, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
+    }
+    
+    // Show the modal
+    modalInstance.show();
+}
+
+// Function to show report modal
+function showReportModal(companyName) {
+    console.log("Opening report modal for:", companyName);
+    
+    // Set company name in the modal title and form
+    document.querySelectorAll('#reportModal .company-name').forEach(function(element) {
+        element.textContent = companyName;
+    });
+    document.getElementById('reportCompanyName').value = companyName;
+    
+    // Get the modal element
+    const modalElement = document.getElementById('reportModal');
+    
+    // Create a new modal instance or get existing
+    let modalInstance = bootstrap.Modal.getInstance(modalElement);
+    if (!modalInstance) {
+        modalInstance = new bootstrap.Modal(modalElement, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
+    }
+    
+    // Show the modal
+    modalInstance.show();
+}
+
+// Function to show company details modal
+function showCompanyDetails(companyId) {
+    console.log("Showing company details for ID:", companyId);
+    const modal = document.getElementById(`company-detail-${companyId}`);
+    if (!modal) {
+        console.error(`Modal not found for company ID: ${companyId}`);
+        return;
+    }
+    
+    // Show the modal with flexbox display to center it
+    modal.style.display = 'flex';
+    document.body.classList.add('modal-open');
+    
+    // Log for debugging
+    console.log("Modal element:", modal);
+    console.log("Modal style display:", modal.style.display);
+    
+    // Scroll to the top of the modal content
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent) {
+        modalContent.scrollTop = 0;
+        console.log("Modal content found and scrolled to top");
+    } else {
+        console.error("Modal content not found");
+    }
+    
+    // Close modal on X click
+    const closeBtn = modal.querySelector('.close-modal');
+    if (closeBtn) {
+        closeBtn.onclick = function() {
+            closeDetailModal(modal.id);
+        };
+        console.log("Close button handler attached");
+    } else {
+        console.error("Close button not found");
+    }
+    
+    // Close modal when clicking outside
+    // Use a named function reference that we can remove later to prevent memory leaks
+    modal.onclick = function(event) {
+        if (event.target === modal) {
+            closeDetailModal(modal.id);
+        }
+    };
+}
+
+// Function to close detail modal
+function closeDetailModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.classList.remove('modal-open');
+        
+        // Remove the click event handler to prevent memory leaks
+        if (modal.onclick) {
+            modal.onclick = null;
+        }
+    }
 }
 
 // Filter companies by search query
@@ -935,68 +1588,4 @@ function filterCompaniesByRisk(riskLevel) {
     
     // Load filtered companies
     loadPageContent(`/companies?${params.toString()}`);
-}
-
-// Show company details
-function showCompanyDetails(companyId) {
-    console.log("显示公司详情:", companyId);
-    
-    // Implementation depends on how company details are displayed
-    // This could open a modal or navigate to a detail page
-    const detailModal = document.getElementById(`company-detail-${companyId}`);
-    console.log("找到模态框:", detailModal ? true : false);
-    
-    if (detailModal) {
-        detailModal.style.display = 'block';
-        console.log("模态框已显示");
-        
-        // Add close functionality
-        const closeButton = detailModal.querySelector('.close-modal');
-        if (closeButton) {
-            closeButton.addEventListener('click', function() {
-                console.log("关闭按钮被点击");
-                detailModal.style.display = 'none';
-            });
-        }
-        
-        // Close when clicking outside the modal
-        window.addEventListener('click', function(e) {
-            if (e.target === detailModal) {
-                console.log("点击模态框外部");
-                detailModal.style.display = 'none';
-            }
-        });
-    } else {
-        console.log("未找到公司详情模态框");
-    }
-}
-
-// Show loading indicator
-function showLoading() {
-    // Check if loading overlay already exists
-    let loadingOverlay = document.getElementById('loading-overlay');
-    
-    if (!loadingOverlay) {
-        // Create loading overlay
-        loadingOverlay = document.createElement('div');
-        loadingOverlay.id = 'loading-overlay';
-        loadingOverlay.innerHTML = `
-            <div class="loading-spinner">
-                <i class="fas fa-spinner fa-spin"></i>
-                <span>Loading...</span>
-            </div>
-        `;
-        document.body.appendChild(loadingOverlay);
-    }
-    
-    // Show the loading overlay
-    loadingOverlay.style.display = 'flex';
-}
-
-// Hide loading indicator
-function hideLoading() {
-    const loadingOverlay = document.getElementById('loading-overlay');
-    if (loadingOverlay) {
-        loadingOverlay.style.display = 'none';
-    }
 }

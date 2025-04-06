@@ -104,7 +104,7 @@ header {
     list-style: none;
     margin: 0;
     padding: 0;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
 .main-nav li {
@@ -115,21 +115,24 @@ header {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.6rem 0.8rem;
+    padding: 0.7rem 1rem;
     border-radius: var(--border-radius);
     color: var(--text-secondary);
     text-decoration: none;
     font-weight: 500;
     transition: all 0.2s ease;
+    position: relative;
 }
 
 .nav-link:hover {
     color: var(--accent-color);
+    background-color: var(--accent-light);
 }
 
 .nav-link.active {
-    color: var(--accent-color-lighter);
+    color: var(--accent-color);
     font-weight: 600;
+    background-color: var(--accent-light);
 }
 
 .nav-link.active::after {
@@ -138,7 +141,7 @@ header {
     bottom: -5px;
     left: 50%;
     transform: translateX(-50%);
-    width: 20px;
+    width: 24px;
     height: 3px;
     background-color: var(--accent-color);
     border-radius: 3px;
@@ -1069,58 +1072,83 @@ header {
 
 .risk-filters {
     display: flex;
-    gap: 0.5rem;
     flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.risk-filter-radio {
+    margin: 0;
+    position: relative;
+    cursor: pointer;
+}
+
+.risk-filter-radio input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
 }
 
 .risk-filter-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    color: var(--text-color);
-    transition: all 0.2s;
-    background-color: rgba(0, 0, 0, 0.05);
+    display: inline-block;
+    padding: 0.5rem 1.25rem;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 2rem;
+    font-weight: 500;
+    color: #495057;
+    transition: all 0.3s ease;
     cursor: pointer;
 }
 
 .risk-filter-btn:hover {
-    background-color: rgba(0, 0, 0, 0.08);
+    background-color: #e9ecef;
+    border-color: #ced4da;
+    transform: translateY(-1px);
 }
 
-.risk-filter-btn.active {
-    background-color: var(--accent-color-lighter);
+.risk-filter-radio input[type="radio"]:checked + .risk-filter-btn {
+    background-color: #5f9d5a;
     color: white;
-    font-weight: 500;
+    border-color: #5f9d5a;
+    box-shadow: 0 2px 5px rgba(95, 157, 90, 0.3);
 }
 
 .risk-filter-btn.high {
-    border-left: 3px solid #ef4444;
+    border-color: #dc3545;
+    color: #dc3545;
 }
 
-.risk-filter-btn.high:hover, .risk-filter-btn.high.active {
-    background-color: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
+.risk-filter-radio input[type="radio"]:checked + .risk-filter-btn.high {
+    background-color: #dc3545;
+    color: white;
+    border-color: #dc3545;
+    box-shadow: 0 2px 5px rgba(220, 53, 69, 0.3);
 }
 
 .risk-filter-btn.medium {
-    border-left: 3px solid #f59e0b;
+    border-color: #ffc107;
+    color: #856404;
 }
 
-.risk-filter-btn.medium:hover, .risk-filter-btn.medium.active {
-    background-color: rgba(245, 158, 11, 0.15);
-    color: #f59e0b;
+.risk-filter-radio input[type="radio"]:checked + .risk-filter-btn.medium {
+    background-color: #ffc107;
+    color: #212529;
+    border-color: #ffc107;
+    box-shadow: 0 2px 5px rgba(255, 193, 7, 0.3);
 }
 
 .risk-filter-btn.low {
-    border-left: 3px solid var(--accent-color);
+    border-color: #5f9d5a;
+    color: #5f9d5a;
 }
 
-.risk-filter-btn.low:hover, .risk-filter-btn.low.active {
-    background-color: rgba(45, 199, 122, 0.15);
-    color: var(--accent-color);
+.risk-filter-radio input[type="radio"]:checked + .risk-filter-btn.low {
+    background-color: #5f9d5a;
+    color: white;
+    border-color: #5f9d5a;
+    box-shadow: 0 2px 5px rgba(95, 157, 90, 0.3);
 }
 
 /* 风险表格 */
@@ -1177,15 +1205,15 @@ header {
 
 /* 风险级别行样式 */
 .risk-level-high {
-    border-left: 4px solid #dc2626;
+    border-left: none;
 }
 
 .risk-level-medium {
-    border-left: 4px solid #d97706;
+    border-left: none;
 }
 
 .risk-level-low {
-    border-left: 4px solid #059669;
+    border-left: none;
 }
 
 /* 表格内容样式 */
@@ -1273,8 +1301,8 @@ header {
     color: #d97706;
 }
 
-/* 模态框样式 */
-.modal {
+/* Custom company detail modals */
+.modal:not(.fade) {
     display: none;
     position: fixed;
     top: 0;
@@ -1283,18 +1311,23 @@ header {
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 1000;
+    justify-content: center;
+    align-items: center;
     overflow: auto;
+    padding: 20px;
 }
 
-.modal-content {
+.modal:not(.fade) .modal-content {
     background-color: white;
-    margin: 5% auto;
-    width: 80%;
+    width: 90%;
     max-width: 900px;
     border-radius: var(--border-radius);
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    overflow: hidden;
     animation: modalFadeIn 0.3s ease;
+    max-height: 90vh;
+    overflow-y: auto;
+    margin: 0 auto;
+    position: relative;
 }
 
 @keyframes modalFadeIn {
@@ -1306,6 +1339,55 @@ header {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+@media (max-height: 900px) {
+    .modal:not(.fade) .modal-content {
+        max-height: 80vh;
+        margin: 10px auto;
+    }
+}
+
+@media (max-height: 700px) {
+    .modal:not(.fade) .modal-content {
+        max-height: 70vh;
+    }
+}
+
+/* Bootstrap modal overrides */
+.modal-dialog {
+    display: flex;
+    align-items: center;
+    min-height: calc(100% - 3.5rem);
+    margin: 1.75rem auto;
+}
+
+.fade {
+    transition: opacity 0.15s linear;
+}
+
+.fade.show {
+    opacity: 1;
+}
+
+.modal.fade .modal-dialog {
+    transition: transform 0.3s ease-out;
+    transform: translateY(-50px);
+}
+
+.modal.show .modal-dialog {
+    transform: none;
+}
+
+.modal-dialog-centered {
+    display: flex;
+    align-items: center;
+    min-height: calc(100% - 3.5rem);
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
 }
 
 .modal-header {
@@ -1346,10 +1428,6 @@ header {
 
 .close-modal:hover {
     color: var(--negative-color);
-}
-
-.modal-body {
-    padding: 1.5rem;
 }
 
 .company-risk-details {
@@ -1544,7 +1622,7 @@ header {
 }
 
 .company-row:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: #f8fafc;
 }
 
 /* Industry category container */
@@ -1877,23 +1955,25 @@ header {
 }
 
 .view-details-btn {
-    background-color: var(--accent-color-lighter);
-    color: white;
-    border: none;
-    padding: 0.6rem 1rem;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
+    background-color: var(--primary-color);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 0.4rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-right: 5px;
+    width: 32px;
+    height: 32px;
 }
 
 .view-details-btn:hover {
-    background-color: var(--accent-color);
+    background-color: var(--primary-color-dark);
+    transform: translateY(-2px);
 }
 
 /* Company Detail Modal Styles */
@@ -2058,5 +2138,1124 @@ a {
 
 a:hover {
     text-decoration: underline;
+}
+
+/* Enhanced financial metrics card styles */
+.financial-metrics .metric-card {
+    transition: all 0.3s ease;
+}
+
+.financial-metrics .metric-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.financial-metrics h4 {
+    transition: color 0.3s ease;
+}
+
+.financial-metrics .metric-card:hover h4 {
+    color: var(--accent-color);
+}
+
+/* 表格排序样式 */
+.sortable {
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+}
+
+.sortable i.fas {
+    margin-left: 5px;
+    font-size: 12px;
+    opacity: 0.7;
+    transition: all 0.2s;
+}
+
+.sortable:hover i.fas {
+    opacity: 1;
+}
+
+.sortable i.fa-sort-up,
+.sortable i.fa-sort-down {
+    opacity: 1;
+    color: var(--accent-color);
+}
+
+/* 移除风险级别行的边框样式 */
+.risk-level-high,
+.risk-level-medium,
+.risk-level-low {
+    border-left: none;
+}
+
+/* 表格悬停效果 */
+.company-row {
+    transition: background-color 0.2s;
+}
+
+.company-row:hover {
+    background-color: #f8fafc;
+}
+
+/* 修复模态框遮罩层问题 */
+body.modal-open {
+    overflow: hidden;
+    padding-right: 15px; /* Compensate for scrollbar disappearing */
+    position: fixed;
+    width: 100%;
+}
+
+/* 确保模态框背景适当变暗 */
+.modal-backdrop.show {
+    opacity: 0.5;
+    pointer-events: auto;
+}
+
+/* 修复多重模态框遮罩问题 */
+.modal-backdrop:nth-child(n+2) {
+    display: none !important;
+}
+
+.modal-content {
+    z-index: 1060;
+}
+
+/* 修改模态框背景透明度 */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1040;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+    opacity: 0.5 !important; /* Force opacity */
+}
+
+.modal-backdrop.show {
+    opacity: 0.5 !important; /* Ensure show class also applies opacity */
+}
+
+.modal {
+    z-index: 1050;
+}
+
+body.modal-open {
+    overflow: hidden;
+    padding-right: 15px; /* Compensate for scrollbar disappearing */
+    position: fixed;
+    width: 100%;
+}
+
+/* 确保通知显示在模态框之上 */
+.alert {
+    z-index: 1100 !important;
+}
+
+/* 解决可能的模态框背景残留问题 */
+.fade:not(.show) {
+    display: none !important;
+}
+
+/* 添加通知样式 */
+#notification-container .alert {
+    margin-bottom: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+.alert-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+}
+
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.alert-error, .alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+/* 为警告、报告和详情模态框添加特殊样式 */
+#alertModal .modal-content,
+#reportModal .modal-content,
+.company-detail-modal .modal-content {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+    border: none;
+}
+
+/* 修改暗色模式下的模态框效果 */
+@media (prefers-color-scheme: dark) {
+    .modal-backdrop {
+        --bs-backdrop-opacity: 0.9 !important;
+    }
+    
+    .modal-content {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6) !important;
+    }
+}
+
+/* Custom Modal Styles */
+.custom-modal {
+    max-width: 550px;
+}
+
+.custom-modal-header {
+    background: linear-gradient(135deg, #3e6b39, #5f9d5a);
+    color: white;
+    border-bottom: none;
+    border-radius: 0.5rem 0.5rem 0 0;
+    padding: 1.25rem 1.5rem;
+}
+
+.modal-title-wrapper {
+    display: flex;
+    align-items: center;
+}
+
+.modal-icon {
+    font-size: 1.5rem;
+    margin-right: 0.75rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.custom-modal-body {
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+}
+
+.modal-description {
+    color: #4e6b50;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+    border-left: 3px solid #5f9d5a;
+    padding-left: 1rem;
+    background-color: rgba(95, 157, 90, 0.05);
+    padding: 0.75rem 1rem;
+    border-radius: 0 0.25rem 0.25rem 0;
+}
+
+.custom-modal-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    border-radius: 0 0 0.5rem 0.5rem;
+    padding: 1rem 1.5rem;
+}
+
+.custom-select, .custom-input {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.custom-select:focus, .custom-input:focus {
+    border-color: #85c17e;
+    box-shadow: 0 0 0 0.25rem rgba(95, 157, 90, 0.25);
+}
+
+.form-label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.form-label i {
+    color: #5f9d5a;
+    margin-right: 0.5rem;
+    width: 1rem;
+    text-align: center;
+}
+
+.notification-options, .delivery-options, .report-section-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.custom-checkbox {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 0.75rem 1rem;
+    margin: 0;
+    transition: all 0.2s ease;
+    flex: 1 0 calc(33.333% - 1rem);
+    min-width: 140px;
+}
+
+.custom-checkbox:hover {
+    border-color: #5f9d5a;
+    background-color: rgba(95, 157, 90, 0.05);
+}
+
+.custom-checkbox input[type="checkbox"]:checked + label {
+    color: #3e6b39;
+    font-weight: 500;
+}
+
+.custom-checkbox i {
+    margin-right: 0.5rem;
+    color: #6c757d;
+}
+
+.custom-checkbox input[type="checkbox"]:checked + label i {
+    color: #5f9d5a;
+}
+
+.custom-btn-primary {
+    background: linear-gradient(135deg, #5f9d5a, #3e6b39);
+    border: none;
+    padding: 0.5rem 1.25rem;
+    transition: all 0.3s ease;
+}
+
+.custom-btn-primary:hover {
+    background: linear-gradient(135deg, #3e6b39, #2c4d29);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.custom-btn-success {
+    background: linear-gradient(135deg, #5f9d5a, #3e6b39);
+    border: none;
+    padding: 0.5rem 1.25rem;
+    transition: all 0.3s ease;
+}
+
+.custom-btn-success:hover {
+    background: linear-gradient(135deg, #3e6b39, #2c4d29);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-outline-secondary {
+    color: #6c757d;
+    border-color: #6c757d;
+    background-color: transparent;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-secondary:hover {
+    color: #fff;
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+.form-group + .form-group {
+    margin-top: 1.5rem;
+}
+
+@media (max-width: 576px) {
+    .custom-checkbox {
+        flex: 1 0 100%;
+    }
+    
+    .notification-options, .delivery-options, .report-section-options {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+/* Modal animations */
+.modal.fade .modal-dialog {
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+    transform: translateY(-20px);
+    opacity: 0;
+}
+
+.modal.show .modal-dialog {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* Modal backdrop animation */
+.modal-backdrop.fade {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal-backdrop.show {
+    opacity: 0.5;
+}
+
+/* Modal content styling */
+.modal-content {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* Notification container */
+#notification-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 400px;
+}
+
+/* notification styles */
+.alert {
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    margin-bottom: 1rem;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.alert-success {
+    background-color: #f0fdf4;
+    color: #166534;
+    border-left: 4px solid #16a34a;
+}
+
+.alert-warning {
+    background-color: #fffbeb;
+    color: #92400e;
+    border-left: 4px solid #f59e0b;
+}
+
+.alert-error, .alert-danger {
+    background-color: #fef2f2;
+    color: #991b1b;
+    border-left: 4px solid #dc2626;
+}
+
+.alert .close-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    color: inherit;
+    opacity: 0.7;
+    cursor: pointer;
+}
+
+.alert .close-btn:hover {
+    opacity: 1;
+}
+
+/* Geographic Heatmap Styles - Updated Layout */
+#geoheatmap-wrapper {
+    display: flex;
+    gap: 20px;
+    height: calc(100vh - 100px);
+    overflow: hidden;
+}
+
+.filters-section {
+    width: 320px;  /* Increased width from 300px to 320px */
+    flex-shrink: 0;
+    overflow-y: auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background-color: var(--card-bg);
+    padding: 20px;
+    height: 100%;
+    border: 1px solid var(--border-color);
+    overscroll-behavior: contain; /* Prevents scroll chaining */
+}
+
+.map-section {
+    flex: 1;
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-width: 0; /* Prevents flex items from overflowing */
+}
+
+.map-section h2 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 12px;
+}
+
+.map-section h2 i {
+    color: var(--primary-color);
+}
+
+#county-map {
+    flex: 1;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    background-color: var(--map-bg, #f2f2f2);
+    position: relative;
+    min-height: 600px;
+    width: 100%;
+    border: 1px solid var(--border-color);
+}
+
+.heatmap-control-group {
+    background-color: var(--bg-light);
+    border-radius: 10px;
+    padding: 16px;  /* Reduced from 18px to give more space for content */
+    margin-bottom: 22px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.heatmap-control-group:hover {
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+}
+
+.filters-section h2 {
+    color: var(--primary-color);
+    margin-bottom: 20px;
+    font-size: 1.3rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.filters-section h2 i {
+    background-color: var(--primary-color);
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9em;
+}
+
+.heatmap-control-group h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    word-wrap: break-word;  /* Allow long text to wrap */
+    line-height: 1.4;  /* Improve readability of wrapped text */
+}
+
+.heatmap-control-group h3 i {
+    color: var(--primary-color);
+    font-size: 0.9rem;
+    background-color: rgba(var(--primary-rgb), 0.1);
+    padding: 6px;
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.heatmap-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.heatmap-radio, .heatmap-checkbox {
+    position: relative;
+    width: 100%;
+}
+
+.heatmap-radio input[type="radio"],
+.heatmap-checkbox input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+}
+
+.heatmap-option-btn {
+    display: block;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+    text-align: left;
+    font-weight: 500;
+    white-space: normal;  /* Allow text to wrap */
+    word-wrap: break-word; /* Break long words */
+    box-sizing: border-box;
+}
+
+.heatmap-radio input[type="radio"]:checked + .heatmap-option-btn,
+.heatmap-checkbox input[type="checkbox"]:checked + .heatmap-option-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 5px rgba(var(--primary-rgb), 0.3);
+}
+
+.heatmap-option-btn:hover {
+    border-color: var(--primary-color);
+    background-color: var(--bg-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.heatmap-dropdown select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px;
+    font-weight: 500;
+    text-overflow: ellipsis;  /* Add ellipsis for overflow text */
+    white-space: nowrap;      /* Keep items on a single line */
+    overflow: hidden;         /* Hide overflow */
+}
+
+.heatmap-dropdown select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
+}
+
+.heatmap-dropdown select:hover {
+    border-color: var(--primary-color);
+}
+
+.heatmap-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+}
+
+.legend-color {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.legend-color.high-risk {
+    background-color: #ff5252;
+}
+
+.legend-color.medium-risk {
+    background-color: #ffce56;
+}
+
+.legend-color.low-risk {
+    background-color: #4caf50;
+}
+
+.legend-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    word-wrap: break-word;  /* Allow long text to wrap */
+    flex: 1;  /* Allow label to take remaining space */
+}
+
+.client-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border-color);
+}
+
+.client-marker {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.client-marker.current {
+    background-color: #3498db;
+    border: 2px solid white;
+}
+
+.client-marker.potential {
+    background-color: #9b59b6;
+    border: 2px solid white;
+}
+
+#map-tooltip {
+    position: absolute;
+    display: none;
+    background-color: white;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 15px;
+    max-width: 280px;  /* Reduced max-width to prevent overlap */
+    z-index: 1000;
+    font-size: 0.85rem;
+    opacity: 0.95;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    word-wrap: break-word;  /* Allow long text to wrap */
+    overflow: auto;  /* Add scrolling if content is too large */
+    max-height: 400px;  /* Limit height to prevent extreme cases */
+}
+
+#map-tooltip h3 {
+    font-size: 1rem;
+    margin-bottom: 10px;
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 7px;
+    font-weight: 600;
+}
+
+.tooltip-content p {
+    margin: 6px 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;  /* Allow wrapping on small tooltip widths */
+}
+
+.tooltip-content p strong {
+    color: var(--text-primary);
+    min-width: 100px;  /* Ensure labels have minimum width */
+}
+
+.county-path {
+    stroke: #fff;
+    stroke-width: 0.5px;
+    transition: all 0.3s ease;
+}
+
+.county-path:hover {
+    stroke-width: 1.5px;
+    stroke: #000;
+    opacity: 0.8;
+}
+
+/* Custom styling for client markers on the map */
+.client-marker-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.client-marker-icon.current div {
+    box-shadow: 0 0 0 2px white, 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.client-marker-icon.potential div {
+    box-shadow: 0 0 0 2px white, 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive adjustments for the map */
+@media (max-width: 1200px) {
+    #geoheatmap-wrapper {
+        height: auto;
+        overflow: visible;
+        flex-direction: column;
+    }
+    
+    .filters-section {
+        width: 100%;
+        height: auto;
+        max-height: none;
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .heatmap-options {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .heatmap-radio, .heatmap-checkbox {
+        width: 100%; /* Make full width on smaller screens */
+    }
+    
+    .heatmap-option-btn {
+        font-size: 0.85rem; /* Slightly smaller font on mobile */
+        padding: 8px 10px; /* Smaller padding on mobile */
+    }
+    
+    .map-section {
+        height: 400px;
+    }
+    
+    #county-map {
+        min-height: 300px;
+    }
+}
+
+/* Additional styles at end of file */
+
+/* Client Markers */
+.client-marker {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    position: relative;
+}
+
+.client-marker.current {
+    background-color: #4caf50;
+    border: 2px solid #2e7d32;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.4);
+}
+
+.client-marker.potential {
+    background-color: #2196f3;
+    border: 2px solid #1565c0;
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.4);
+}
+
+.client-marker:hover {
+    transform: scale(1.2);
+    transition: transform 0.2s ease-out;
+}
+
+/* Loading Overlay */
+#loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.loading-spinner i {
+    font-size: 3rem;
+    color: #2196f3;
+    margin-bottom: 10px;
+}
+
+/* Notification styles */
+#notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 400px;
+}
+
+.alert {
+    padding: 15px;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    animation: slide-in 0.3s ease-out;
+}
+
+@keyframes slide-in {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.alert-error {
+    background-color: #ffebee;
+    border-left: 4px solid #f44336;
+    color: #d32f2f;
+}
+
+.alert i {
+    margin-right: 10px;
+    font-size: 1.2rem;
+}
+
+.alert .close-btn {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+.alert .close-btn:hover {
+    opacity: 1;
+}
+
+/* Enhanced Map Tooltip */
+#map-tooltip {
+    position: absolute;
+    display: none;
+    padding: 12px;
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+    z-index: 1000;
+    font-size: 0.9rem;
+    min-width: 250px;
+    border-left: 4px solid #2196f3;
+}
+
+#map-tooltip h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.1rem;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+#map-tooltip .tooltip-metric {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+#map-tooltip .tooltip-metric-label {
+    font-weight: 500;
+    color: #555;
+}
+
+#map-tooltip .tooltip-metric-value {
+    font-weight: 600;
+    color: #333;
+}
+
+#map-tooltip .tooltip-risk-low {
+    color: #4caf50;
+}
+
+#map-tooltip .tooltip-risk-medium {
+    color: #ff9800;
+}
+
+#map-tooltip .tooltip-risk-high {
+    color: #f44336;
+}
+
+#map-tooltip .tooltip-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+#map-tooltip .tooltip-icon {
+    margin-right: 8px;
+    color: #2196f3;
+    font-size: 1.2rem;
+}
+
+#map-tooltip .tooltip-county {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+/* Make the Leaflet popups match our styling */
+.leaflet-popup-content-wrapper {
+    border-radius: 6px;
+    padding: 0;
+}
+
+.leaflet-popup-content {
+    margin: 12px;
+    font-size: 0.9rem;
+}
+
+.leaflet-popup-tip {
+    background-color: white;
+}
+
+.leaflet-popup-close-button {
+    padding: 8px;
+}
+
+/* Additional responsive adjustments */
+@media (max-width: 768px) {
+    #map-tooltip {
+        min-width: 200px;
+        font-size: 0.8rem;
+    }
+    
+    .client-marker {
+        width: 10px;
+        height: 10px;
+    }
+}
+
+/* 客户类型指示器 */
+.client-type-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+    border: 1px solid #fff;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+}
+
+.client-type-indicator.current {
+    background-color: #4285f4; /* 蓝色 - 当前客户 */
+}
+
+.client-type-indicator.potential {
+    background-color: #34a853; /* 绿色 - 潜在客户 */
+}
+
+/* 地图指南样式 */
+.map-instructions {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0.5rem 0;
+}
+
+/* 现有的地图样式 */
+
+/* 通知容器 */
+#notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    max-width: 400px;
+}
+
+/* 通知样式 */
+.alert {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    width: 100%;
+    transition: all 0.3s ease;
+    opacity: 0;
+    transform: translateX(100%);
+    position: relative;
+    cursor: default;
+    border-left: 5px solid;
+}
+
+/* 提示图标 */
+.alert i:first-child {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+/* 消息文本 */
+.alert .message {
+    flex-grow: 1;
+    margin-right: 15px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* 关闭按钮 */
+.alert .close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+    opacity: 0.7;
+}
+
+.alert .close-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    opacity: 1;
+}
+
+/* 警告通知 */
+.alert-warning {
+    border-left-color: #f0ad4e;
+}
+
+.alert-warning i:first-child {
+    color: #f0ad4e;
+}
+
+/* 错误通知 */
+.alert-error, .alert-danger {
+    border-left-color: #d9534f;
+}
+
+.alert-error i:first-child, .alert-danger i:first-child {
+    color: #d9534f;
 }
 

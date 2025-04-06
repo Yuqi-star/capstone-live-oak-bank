@@ -22,6 +22,7 @@
                         <li><a href="{{ url_for('dashboard') }}" class="nav-link"><i class="fas fa-newspaper"></i> Industry News</a></li>
                         <li><a href="{{ url_for('companies') }}" class="nav-link"><i class="fas fa-chart-line"></i> Credit Risk</a></li>
                         <li><a href="{{ url_for('company_profiles') }}" class="nav-link active"><i class="fas fa-building"></i> Company Profiles</a></li>
+                        <li><a href="{{ url_for('geoheatmap') }}" class="nav-link"><i class="fas fa-map-marked-alt"></i> Geographic Heatmap</a></li>
                     </ul>
                 </nav>
                 <span><i class="fas fa-user-circle"></i> Welcome, {{ username }}!</span>
@@ -102,9 +103,6 @@
                                 <p><i class="fas fa-industry"></i> {{ company.sub_industry }}</p>
                                 <p><i class="fas fa-phone"></i> {{ company.Phone }}</p>
                                 <p><i class="fas fa-globe"></i> <a href="{{ company.Website }}" target="_blank">Website</a></p>
-                                {% if company['Linkedin link'] %}
-                                <p><i class="fab fa-linkedin"></i> <a href="{{ company['Linkedin link'] }}" target="_blank">LinkedIn</a></p>
-                                {% endif %}
                             </div>
                             <div class="company-specialties">
                                 <h4>Specialties</h4>
@@ -209,9 +207,6 @@
             <div class="modal-footer">
                 <div class="external-links">
                     <a href="{{ company.Website }}" target="_blank" class="modal-btn primary"><i class="fas fa-globe"></i> Visit Website</a>
-                    {% if company['Linkedin link'] %}
-                    <a href="{{ company['Linkedin link'] }}" target="_blank" class="modal-btn secondary"><i class="fab fa-linkedin"></i> LinkedIn</a>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -220,124 +215,115 @@
 
     <script src="{{ url_for('static', filename='script.js') }}?v={{ now.timestamp() }}"></script>
     <script>
+        // Ensure navigation links are properly styled
+        function updateNavLinks() {
+            const currentPath = window.location.pathname;
+            console.log("Current path:", currentPath);
+            
+            document.querySelectorAll('.main-nav a').forEach(link => {
+                const linkPath = link.getAttribute('href');
+                console.log("Link path:", linkPath);
+                
+                if (currentPath === linkPath || 
+                    (currentPath.includes('/companies') && linkPath.includes('/companies')) || 
+                    (currentPath.includes('/dashboard') && linkPath.includes('/dashboard')) || 
+                    (currentPath.includes('/company_profiles') && linkPath.includes('/company_profiles'))) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+        }
+        
+        // Document ready
         document.addEventListener('DOMContentLoaded', function() {
-            // Industry filter cards
-            const filterCards = document.querySelectorAll('.filter-card');
-            filterCards.forEach(card => {
+            // Call immediately to ensure correct styling
+            updateNavLinks();
+            
+            // Set up industry filter card clicks
+            document.querySelectorAll('.filter-card').forEach(card => {
                 card.addEventListener('click', function() {
                     const industry = this.getAttribute('data-industry');
-                    filterCompaniesByIndustry(industry);
+                    filterByIndustry(industry);
                 });
             });
             
-            // View toggle buttons
-            const viewButtons = document.querySelectorAll('.view-btn');
-            const profilesContainer = document.querySelector('.company-profiles-container');
-            
-            viewButtons.forEach(btn => {
+            // Set up view toggle
+            document.querySelectorAll('.view-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    // Remove active class from all buttons
-                    viewButtons.forEach(b => b.classList.remove('active'));
-                    // Add active class to clicked button
-                    this.classList.add('active');
-                    
-                    // Set view mode
-                    const viewMode = this.getAttribute('data-view');
-                    profilesContainer.className = 'company-profiles-container ' + viewMode + '-view';
+                    const view = this.getAttribute('data-view');
+                    changeView(view);
                 });
             });
             
-            // Company detail modal
-            const detailButtons = document.querySelectorAll('.view-details-btn');
-            const modals = document.querySelectorAll('.modal');
-            const closeButtons = document.querySelectorAll('.close-modal');
-            
-            detailButtons.forEach((btn, index) => {
+            // Set up view details buttons
+            document.querySelectorAll('.view-details-btn').forEach((btn, index) => {
                 btn.addEventListener('click', function() {
                     document.getElementById('company-detail-' + (index + 1)).style.display = 'block';
+                    document.body.classList.add('modal-open');
                 });
             });
             
-            closeButtons.forEach(btn => {
+            // Set up close modal buttons
+            document.querySelectorAll('.close-modal').forEach(btn => {
                 btn.addEventListener('click', function() {
                     this.closest('.modal').style.display = 'none';
+                    document.body.classList.remove('modal-open');
                 });
             });
             
+            // Close modal when clicking outside
             window.addEventListener('click', function(e) {
-                modals.forEach(modal => {
+                document.querySelectorAll('.modal').forEach(modal => {
                     if (e.target === modal) {
                         modal.style.display = 'none';
+                        document.body.classList.remove('modal-open');
                     }
                 });
             });
-            
-            // Company search
-            const searchInput = document.getElementById('companySearchInput');
-            const searchButton = document.getElementById('companySearchButton');
-            
-            searchButton.addEventListener('click', function() {
-                const searchQuery = searchInput.value.trim();
-                filterCompaniesBySearch(searchQuery);
+
+            // Fallback for navigation links - in case AJAX navigation fails
+            var navLinks = document.querySelectorAll('.main-nav a');
+            navLinks.forEach(function(link) {
+                link.setAttribute('data-href', link.getAttribute('href'));
+                link.addEventListener('click', function(e) {
+                    // If after 1 second the page hasn't navigated via AJAX, use traditional navigation
+                    setTimeout(function() {
+                        window.location.href = link.getAttribute('data-href');
+                    }, 1000);
+                });
             });
-            
-            searchInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    const searchQuery = this.value.trim();
-                    filterCompaniesBySearch(searchQuery);
-                }
-            });
-            
-            // Filter companies by industry
-            function filterCompaniesByIndustry(industry) {
-                const params = new URLSearchParams(window.location.search);
-                
-                if (industry) {
-                    params.set('industry', industry);
-                } else {
-                    params.delete('industry');
-                }
-                
-                // Keep search query if present
-                const searchQuery = searchInput.value.trim();
-                if (searchQuery) {
-                    params.set('search', searchQuery);
-                } else {
-                    params.delete('search');
-                }
-                
-                // Show loading indicator
-                showLoading();
-                
-                // Redirect to filtered results
-                window.location.href = `/company_profiles?${params.toString()}`;
-            }
-            
-            // Filter companies by search
-            function filterCompaniesBySearch(query) {
-                const params = new URLSearchParams(window.location.search);
-                
-                if (query) {
-                    params.set('search', query);
-                } else {
-                    params.delete('search');
-                }
-                
-                // Keep industry filter if present
-                const industry = params.get('industry');
-                if (industry) {
-                    params.set('industry', industry);
-                } else {
-                    params.delete('industry');
-                }
-                
-                // Show loading indicator
-                showLoading();
-                
-                // Redirect to filtered results
-                window.location.href = `/company_profiles?${params.toString()}`;
-            }
         });
+        
+        // Function to filter companies by industry
+        function filterByIndustry(industry) {
+            const url = `/company_profiles?${industry ? `industry=${industry}` : ''}`;
+            window.location.href = url;
+        }
+        
+        // Function to change view (grid/list)
+        function changeView(view) {
+            const container = document.querySelector('.company-profiles-container');
+            const buttons = document.querySelectorAll('.view-btn');
+            
+            // Update view buttons
+            buttons.forEach(btn => {
+                if (btn.getAttribute('data-view') === view) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            // Update container class
+            if (view === 'grid') {
+                container.classList.add('grid-view');
+                container.classList.remove('list-view');
+            } else {
+                container.classList.add('list-view');
+                container.classList.remove('grid-view');
+            }
+        }
     </script>
 </body>
 </html> 

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Oak Bank - Geographic Heatmap</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ now.timestamp() }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='transitions.css') }}?v={{ now.timestamp() }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS & JS for map functionality -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- D3.js for data visualization -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- TopoJSON for geographic data -->
+    <script src="https://unpkg.com/topojson@3"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header>
+            <div class="logo-section">
+                <img src="{{ url_for('static', filename='images/bank1.png') }}" alt="Live Oak Bank" class="logo">
+                <h1>Insights Panel</h1>
+            </div>
+            <div class="user-section">
+                <nav class="main-nav">
+                    <ul>
+                        <li><a href="{{ url_for('dashboard') }}" class="nav-link"><i class="fas fa-newspaper"></i> Industry News</a></li>
+                        <li><a href="{{ url_for('companies') }}" class="nav-link"><i class="fas fa-chart-line"></i> Credit Risk</a></li>
+                        <li><a href="{{ url_for('company_profiles') }}" class="nav-link"><i class="fas fa-building"></i> Company Profiles</a></li>
+                        <li><a href="{{ url_for('geoheatmap') }}" class="nav-link active"><i class="fas fa-map-marked-alt"></i> Geographic Heatmap</a></li>
+                    </ul>
+                </nav>
+                <span><i class="fas fa-user-circle"></i> Welcome, {{ username }}!</span>
+                <a href="{{ url_for('logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </header>
+
+        <div class="content-wrapper" id="geoheatmap-wrapper">
+            <div class="filters-section">
+                <h2><i class="fas fa-sliders-h"></i> Heatmap Controls</h2>
+                
+                <!-- Metric Selector -->
+                <div class="heatmap-control-group">
+                    <h3><i class="fas fa-chart-pie"></i> Select Metric</h3>
+                    <div class="heatmap-options">
+                        <div class="heatmap-radio">
+                            <input type="radio" id="metric-revenue" name="metric" value="revenue" checked>
+                            <label for="metric-revenue" class="heatmap-option-btn">Revenue</label>
+                        </div>
+                        <div class="heatmap-radio">
+                            <input type="radio" id="metric-pd" name="metric" value="pd">
+                            <label for="metric-pd" class="heatmap-option-btn">Probability of Default</label>
+                        </div>
+                        <div class="heatmap-radio">
+                            <input type="radio" id="metric-risk" name="metric" value="risk">
+                            <label for="metric-risk" class="heatmap-option-btn">Risk Level</label>
+                        </div>
+                        <div class="heatmap-radio">
+                            <input type="radio" id="metric-fcr" name="metric" value="fcr">
+                            <label for="metric-fcr" class="heatmap-option-btn">Financial Coverage Ratio</label>
+                        </div>
+                        <div class="heatmap-radio">
+                            <input type="radio" id="metric-cr" name="metric" value="cr">
+                            <label for="metric-cr" class="heatmap-option-btn">Current Ratio</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Industry Filter -->
+                <div class="heatmap-control-group">
+                    <h3><i class="fas fa-industry"></i> Filter by Industry</h3>
+                    <div class="heatmap-dropdown">
+                        <select id="industry-filter">
+                            <option value="all">All Industries</option>
+                            {% for industry in default_industries %}
+                            <option value="{{ industry }}">{{ industry }}</option>
+                            {% endfor %}
+                            {% for industry in industries %}
+                                {% if industry not in default_industries %}
+                                <option value="{{ industry }}">{{ industry }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Client Type Filter -->
+                <div class="heatmap-control-group">
+                    <h3><i class="fas fa-users"></i> Client Type</h3>
+                    <div class="heatmap-options">
+                        <div class="heatmap-checkbox">
+                            <input type="checkbox" id="client-current" name="client-type" value="current" checked>
+                            <label for="client-current" class="heatmap-option-btn">
+                                <span class="client-type-indicator current"></span>Current Clients
+                            </label>
+                        </div>
+                        <div class="heatmap-checkbox">
+                            <input type="checkbox" id="client-potential" name="client-type" value="potential" checked>
+                            <label for="client-potential" class="heatmap-option-btn">
+                                <span class="client-type-indicator potential"></span>Potential Clients
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Legend -->
+                <div class="heatmap-control-group">
+                    <h3><i class="fas fa-info-circle"></i> Map Instructions</h3>
+                    <p class="map-instructions">Click on counties to see detailed information. Zoom and pan to explore regions.</p>
+                </div>
+            </div>
+
+            <div class="map-section">
+                <h2><i class="fas fa-map-marked-alt"></i> Geographic Risk Analysis</h2>
+                <div id="county-map"></div>
+                <div id="map-tooltip">
+                    <h3 class="tooltip-county">County Name</h3>
+                    <div class="tooltip-content">
+                        <p><strong>State:</strong> <span id="tooltip-state"></span></p>
+                        <p><strong>Revenue:</strong> $<span id="tooltip-revenue"></span></p>
+                        <p><strong>Probability of Default:</strong> <span id="tooltip-pd"></span>%</p>
+                        <p><strong>Financial Coverage Ratio:</strong> <span id="tooltip-fcr"></span></p>
+                        <p><strong>Current Ratio:</strong> <span id="tooltip-cr"></span></p>
+                        <p><strong>Risk Level:</strong> <span id="tooltip-risk"></span></p>
+                        <p><strong>Client Companies:</strong> <span id="tooltip-clients"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}?v={{ now.timestamp() }}"></script>
+    <script src="{{ url_for('static', filename='geoheatmap.js') }}?v={{ now.timestamp() }}"></script>
+</body>
+</html> 

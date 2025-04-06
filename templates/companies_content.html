@@ -189,8 +189,8 @@
                 </div>
                 
                 <div class="modal-actions">
-                    <button class="modal-btn secondary">Set Alert</button>
-                    <button class="modal-btn primary">Generate Report</button>
+                    <button class="modal-btn secondary" data-bs-toggle="modal" data-bs-target="#alertModal" onclick="showAlertModal('{{ company.Company }}')">Set Alert</button>
+                    <button class="modal-btn primary" data-bs-toggle="modal" data-bs-target="#reportModal" onclick="showReportModal('{{ company.Company }}')">Generate Report</button>
                 </div>
             </div>
         </div>

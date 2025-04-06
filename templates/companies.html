@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <!-- Notification container for alerts -->
+    <div id="notification-container"></div>
     <div class="dashboard-container">
         <header>
             <div class="logo-section">
@@ -22,6 +24,7 @@
                         <li><a href="{{ url_for('dashboard') }}" class="nav-link"><i class="fas fa-newspaper"></i> Industry News</a></li>
                         <li><a href="{{ url_for('companies') }}" class="nav-link active"><i class="fas fa-chart-line"></i> Credit Risk</a></li>
                         <li><a href="{{ url_for('company_profiles') }}" class="nav-link"><i class="fas fa-building"></i> Company Profiles</a></li>
+                        <li><a href="{{ url_for('geoheatmap') }}" class="nav-link"><i class="fas fa-map-marked-alt"></i> Geographic Heatmap</a></li>
                     </ul>
                 </nav>
                 <span><i class="fas fa-user-circle"></i> Welcome, {{ username }}!</span>
@@ -82,19 +85,19 @@
                 </div>
                 <div class="risk-filters">
                     <label class="risk-filter-radio">
-                        <input type="radio" name="risk-filter" value="all" {% if not risk_filter %}checked{% endif %}>
+                        <input type="radio" name="risk-filter" value="all" id="riskFilterAll" {% if not risk_filter %}checked{% endif %}>
                         <span class="risk-filter-btn {% if not risk_filter %}active{% endif %}">All</span>
                     </label>
                     <label class="risk-filter-radio">
-                        <input type="radio" name="risk-filter" value="high" {% if risk_filter == 'high' %}checked{% endif %}>
+                        <input type="radio" name="risk-filter" value="high" id="riskFilterHigh" {% if risk_filter == 'high' %}checked{% endif %}>
                         <span class="risk-filter-btn high {% if risk_filter == 'high' %}active{% endif %}">High Risk</span>
                     </label>
                     <label class="risk-filter-radio">
-                        <input type="radio" name="risk-filter" value="medium" {% if risk_filter == 'medium' %}checked{% endif %}>
+                        <input type="radio" name="risk-filter" value="medium" id="riskFilterMedium" {% if risk_filter == 'medium' %}checked{% endif %}>
                         <span class="risk-filter-btn medium {% if risk_filter == 'medium' %}active{% endif %}">Medium Risk</span>
                     </label>
                     <label class="risk-filter-radio">
-                        <input type="radio" name="risk-filter" value="low" {% if risk_filter == 'low' %}checked{% endif %}>
+                        <input type="radio" name="risk-filter" value="low" id="riskFilterLow" {% if risk_filter == 'low' %}checked{% endif %}>
                         <span class="risk-filter-btn low {% if risk_filter == 'low' %}active{% endif %}">Low Risk</span>
                     </label>
                 </div>
@@ -109,20 +112,21 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Company</th>
-                                <th>Credit Rating</th>
-                                <th>PD</th>
-                                <th>Expected Loss</th>
-                                <th>Current Ratio</th>
-                                <th>ROE</th>
-                                <th>Leverage Ratio</th>
-                                <th>Risk Level</th>
+                                <th data-sort="company" class="sortable">Company <i class="fas fa-sort"></i></th>
+                                <th data-sort="rating" class="sortable">Credit Rating <i class="fas fa-sort"></i></th>
+                                <th data-sort="pd" class="sortable">PD <i class="fas fa-sort"></i></th>
+                                <th data-sort="expected_loss" class="sortable">Expected Loss <i class="fas fa-sort"></i></th>
+                                <th data-sort="current_ratio" class="sortable">Current Ratio <i class="fas fa-sort"></i></th>
+                                <th data-sort="roe" class="sortable">ROE <i class="fas fa-sort"></i></th>
+                                <th data-sort="leverage_ratio" class="sortable">Leverage Ratio <i class="fas fa-sort"></i></th>
+                                <th data-sort="coverage_ratio" class="sortable">Coverage Ratio <i class="fas fa-sort"></i></th>
+                                <th data-sort="risk_level" class="sortable">Risk Level <i class="fas fa-sort"></i></th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for company in companies %}
-                            <tr class="risk-level-{{ company.risk_level }} company-row" data-company-id="{{ loop.index }}">
+                            <tr class="company-row" data-company-id="{{ loop.index }}">
                                 <td class="company-name">{{ company.Company }}</td>
                                 <td class="credit-rating">{{ company['Credit Rating'] }}</td>
                                 <td class="pd">{{ "%.2f"|format(company['Probability of Default'] * 100) }}%</td>
@@ -132,16 +136,17 @@
                                     {{ "%.2f"|format(company.ROE * 100) }}%
                                 </td>
                                 <td class="leverage-ratio">{{ "%.2f"|format(company['Leverage Ratio']) }}</td>
+                                <td class="coverage-ratio">{{ "%.2f"|format(company['Financial Coverage Ratio']) }}x</td>
                                 <td class="risk-level">
                                     <span class="risk-badge {{ company.risk_level }}">
                                         {{ company.risk_level|capitalize }}
                                     </span>
                                 </td>
                                 <td class="actions">
-                                    <button class="action-btn view-details" data-company="{{ company.Company }}">
+                                    <button class="view-details-btn" onclick="showCompanyDetails('{{ company.Company }}')">
                                         <i class="fas fa-eye"></i>
                                     </button>
-                                    <button class="action-btn add-alert" data-company="{{ company.Company }}">
+                                    <button class="action-btn add-alert" data-company="{{ company.Company }}" onclick="showAlertModal('{{ company.Company }}')">
                                         <i class="fas fa-bell"></i>
                                     </button>
                                 </td>
@@ -167,12 +172,12 @@
         <div class="modal-content">
             <div class="modal-header {{ company.risk_level }}-risk">
                 <h2 id="modalCompanyName">{{ company.Company }}</h2>
-                <span class="close-modal">&times;</span>
+                <span class="close-modal" onclick="closeDetailModal('company-detail-{{ loop.index }}')">&times;</span>
             </div>
             <div class="modal-body">
                 <div class="company-risk-details">
                     <div class="risk-metrics">
-                        <h3>Risk Metrics</h3>
+                        <h3><i class="fas fa-chart-line"></i> Risk Metrics</h3>
                         <div class="metrics-grid">
                             <div class="metric-card">
                                 <h4>Probability of Default</h4>
@@ -198,7 +203,7 @@
                     </div>
                     
                     <div class="financial-metrics">
-                        <h3>Financial Metrics</h3>
+                        <h3><i class="fas fa-file-invoice-dollar"></i> Financial Metrics</h3>
                         <div class="metrics-grid">
                             <div class="metric-card">
                                 <h4>Current Ratio</h4>
@@ -216,19 +221,456 @@
                                 <h4>Leverage Ratio</h4>
                                 <p class="metric-value">{{ "%.2f"|format(company['Leverage Ratio']) }}</p>
                             </div>
+                            <div class="metric-card">
+                                <h4>Coverage Ratio</h4>
+                                <p class="metric-value">{{ "%.2f"|format(company['Financial Coverage Ratio']) }}x</p>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
                 <div class="modal-actions">
-                    <button class="modal-btn secondary">Set Alert</button>
-                    <button class="modal-btn primary">Generate Report</button>
+                    <button class="modal-btn primary" onclick="showReportModal('{{ company.Company }}')"><i class="fas fa-file-pdf"></i> Generate Report</button>
+                    <button class="modal-btn secondary" onclick="closeDetailModal('company-detail-{{ loop.index }}')"><i class="fas fa-times"></i> Close</button>
                 </div>
             </div>
         </div>
     </div>
     {% endfor %}
     
+    <!-- Alert Modal -->
+    <div id="alertModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Set Alert for <span class="company-name"></span></h2>
+                <button class="close-modal" onclick="closeDetailModal('alertModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description">Get notified when this company's metrics cross your defined thresholds.</p>
+                <form id="alertForm">
+                    <input type="hidden" id="alertCompanyName" name="company_name">
+                    <div class="form-group mb-3">
+                        <label class="form-label"><i class="fas fa-chart-line"></i> Metric</label>
+                        <select class="form-select custom-select" name="metric" required>
+                            <option value="credit_rating">Credit Rating</option>
+                            <option value="pd">Probability of Default</option>
+                            <option value="expected_loss">Expected Loss</option>
+                            <option value="current_ratio">Current Ratio</option>
+                            <option value="roe">ROE</option>
+                            <option value="leverage_ratio">Leverage Ratio</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label"><i class="fas fa-not-equal"></i> Condition</label>
+                        <select class="form-select custom-select" name="condition" required>
+                            <option value="above">Above</option>
+                            <option value="below">Below</option>
+                            <option value="equals">Equals</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label"><i class="fas fa-exclamation-circle"></i> Threshold</label>
+                        <input type="number" class="form-control custom-input" name="threshold" step="0.01" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label"><i class="fas fa-comment-alt"></i> Notification Method</label>
+                        <div class="notification-options">
+                            <div class="custom-checkbox">
+                                <input type="checkbox" name="notify_email" id="notifyEmail">
+                                <label for="notifyEmail">
+                                    <i class="fas fa-envelope"></i> Email
+                                </label>
+                            </div>
+                            <div class="custom-checkbox">
+                                <input type="checkbox" name="notify_sms" id="notifySMS">
+                                <label for="notifySMS">
+                                    <i class="fas fa-sms"></i> SMS
+                                </label>
+                            </div>
+                            <div class="custom-checkbox">
+                                <input type="checkbox" name="notify_dashboard" id="notifyDashboard" checked>
+                                <label for="notifyDashboard">
+                                    <i class="fas fa-desktop"></i> Dashboard
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="emailField" class="form-group mb-3" style="display: none;">
+                        <label class="form-label"><i class="fas fa-at"></i> Email Address</label>
+                        <input type="email" class="custom-input" name="email" value="{{ user_email if user_email }}">
+                    </div>
+                    <div id="phoneField" class="form-group mb-3" style="display: none;">
+                        <label class="form-label"><i class="fas fa-phone"></i> Phone Number</label>
+                        <input type="tel" class="custom-input" name="phone">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <div class="external-links">
+                    <button class="modal-btn secondary" onclick="closeDetailModal('alertModal')">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button class="modal-btn primary" onclick="submitAlert(); return false;">
+                        <i class="fas fa-bell"></i> Set Alert
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div id="reportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Generate Report for <span class="company-name"></span></h2>
+                <button class="close-modal" onclick="closeDetailModal('reportModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description">Create a detailed credit risk report with the sections and frequency you need.</p>
+                <form id="reportForm">
+                    <input type="hidden" id="reportCompanyName" name="company_name">
+                    <div class="form-group mb-3">
+                        <label class="form-label"><i class="fas fa-list-alt"></i> Report Sections</label>
+                        <div class="report-section-options">
+                            <div class="custom-checkbox">
+                                <input type="checkbox" name="sections" value="company_info" checked id="sectionCompanyInfo">
+                                <label for="sectionCompanyInfo">
+                                    <i class="fas fa-building"></i> Company Information
+                                </label>
+                            </div>
+                            <div class="custom-checkbox">
+                                <input type="checkbox" name="sections" value="risk_profile" checked id="sectionRiskProfile">
+                                <label for="sectionRiskProfile">
+                                    <i class="fas fa-exclamation-triangle"></i> Risk Profile
+                                </label>
+                            </div>
+                            <div class="custom-checkbox">
+                                <input type="checkbox" name="sections" value="financial_metrics" checked id="sectionFinancial">
+                                <label for="sectionFinancial">
+                                    <i class="fas fa-chart-pie"></i> Financial Metrics
+                                </label>
+                            </div>
+                            <div class="custom-checkbox">
+                                <input type="checkbox" name="sections" value="historical_data" id="sectionHistorical">
+                                <label for="sectionHistorical">
+                                    <i class="fas fa-chart-line"></i> Historical Performance
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label"><i class="fas fa-calendar-alt"></i> Report Schedule</label>
+                        <select class="custom-select" name="schedule">
+                            <option value="once">One-time</option>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label"><i class="fas fa-paper-plane"></i> Delivery Method</label>
+                        <div class="delivery-options">
+                            <div class="custom-checkbox">
+                                <input type="checkbox" name="delivery_email" id="deliveryEmail">
+                                <label for="deliveryEmail">
+                                    <i class="fas fa-envelope"></i> Email
+                                </label>
+                            </div>
+                            <div class="custom-checkbox">
+                                <input type="checkbox" name="delivery_download" id="deliveryDownload" checked>
+                                <label for="deliveryDownload">
+                                    <i class="fas fa-download"></i> Download
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="reportEmailField" class="form-group mb-3" style="display: none;">
+                        <label class="form-label"><i class="fas fa-at"></i> Email Address</label>
+                        <input type="email" class="custom-input" name="email" value="{{ user_email if user_email }}">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <div class="external-links">
+                    <button class="modal-btn secondary" onclick="closeDetailModal('reportModal')">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button class="modal-btn primary" onclick="submitReport(); return false;">
+                        <i class="fas fa-file-pdf"></i> Generate Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script src="{{ url_for('static', filename='script.js') }}?v={{ now.timestamp() }}"></script>
+    <script>
+        // Ensure navigation links are properly styled
+        function updateNavLinks() {
+            const currentPath = window.location.pathname;
+            console.log("Current path:", currentPath);
+            
+            document.querySelectorAll('.main-nav a').forEach(link => {
+                const linkPath = link.getAttribute('href');
+                console.log("Link path:", linkPath);
+                
+                if (currentPath === linkPath || 
+                    (currentPath.includes('/companies') && linkPath.includes('/companies')) || 
+                    (currentPath.includes('/dashboard') && linkPath.includes('/dashboard')) || 
+                    (currentPath.includes('/company_profiles') && linkPath.includes('/company_profiles'))) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+        }
+        
+        // Call immediately to ensure correct styling
+        updateNavLinks();
+        
+        // Fallback for navigation links - in case AJAX navigation fails
+        var navLinks = document.querySelectorAll('.main-nav a');
+        navLinks.forEach(function(link) {
+            link.setAttribute('data-href', link.getAttribute('href'));
+            link.addEventListener('click', function(e) {
+                // If after 1 second the page hasn't navigated via AJAX, use traditional navigation
+                setTimeout(function() {
+                    window.location.href = link.getAttribute('data-href');
+                }, 1000);
+            });
+        });
+        
+        // Modal functions
+        function showCompanyDetails(companyName) {
+            // Find the company detail modal by company name
+            const companyList = JSON.parse('{{ companies|tojson|safe }}');
+            const companyIndex = companyList.findIndex(c => c.Company === companyName) + 1;
+            
+            if (companyIndex > 0) {
+                const modalId = `company-detail-${companyIndex}`;
+                document.getElementById(modalId).style.display = 'block';
+                document.body.classList.add('modal-open');
+            }
+        }
+        
+        function showAlertModal(companyName) {
+            document.getElementById('alertCompanyName').value = companyName;
+            document.querySelectorAll('#alertModal .company-name').forEach(el => {
+                el.textContent = companyName;
+            });
+            document.getElementById('alertForm').reset();
+            document.getElementById('notifyDashboard').checked = true;
+            document.getElementById('emailField').style.display = 'none';
+            document.getElementById('phoneField').style.display = 'none';
+            
+            document.getElementById('alertModal').style.display = 'block';
+            document.body.classList.add('modal-open');
+        }
+        
+        function showReportModal(companyName) {
+            document.getElementById('reportCompanyName').value = companyName;
+            document.querySelectorAll('#reportModal .company-name').forEach(el => {
+                el.textContent = companyName;
+            });
+            document.getElementById('reportForm').reset();
+            
+            // Set default checked state for sections
+            document.getElementById('sectionCompanyInfo').checked = true;
+            document.getElementById('sectionRiskProfile').checked = true;
+            document.getElementById('sectionFinancial').checked = true;
+            document.getElementById('deliveryDownload').checked = true;
+            document.getElementById('reportEmailField').style.display = 'none';
+            
+            document.getElementById('reportModal').style.display = 'block';
+            document.body.classList.add('modal-open');
+        }
+        
+        function closeDetailModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            document.body.classList.remove('modal-open');
+        }
+        
+        // Event listeners for email and SMS notification options
+        document.addEventListener('DOMContentLoaded', function() {
+            // For email and SMS checkboxes
+            document.getElementById('notifyEmail').addEventListener('change', function() {
+                document.getElementById('emailField').style.display = this.checked ? 'block' : 'none';
+            });
+            
+            document.getElementById('notifySMS').addEventListener('change', function() {
+                document.getElementById('phoneField').style.display = this.checked ? 'block' : 'none';
+            });
+            
+            // For report email checkbox
+            document.getElementById('deliveryEmail').addEventListener('change', function() {
+                document.getElementById('reportEmailField').style.display = this.checked ? 'block' : 'none';
+            });
+            
+            // Close modal when clicking outside the content
+            window.addEventListener('click', function(event) {
+                const alertModal = document.getElementById('alertModal');
+                const reportModal = document.getElementById('reportModal');
+                
+                if (event.target === alertModal) {
+                    closeDetailModal('alertModal');
+                } else if (event.target === reportModal) {
+                    closeDetailModal('reportModal');
+                }
+            });
+        });
+        
+        // Function to filter companies by risk level
+        function filterCompaniesByRisk(riskLevel) {
+            console.log("Filtering companies by risk level:", riskLevel);
+            
+            const params = new URLSearchParams(window.location.search);
+            
+            if (riskLevel && riskLevel !== 'all') {
+                params.set('risk', riskLevel);
+            } else {
+                params.delete('risk');
+            }
+            
+            // Keep search query if present
+            const searchQuery = document.getElementById('companySearchInput')?.value.trim();
+            if (searchQuery) {
+                params.set('search', searchQuery);
+            } else {
+                params.delete('search');
+            }
+            
+            const url = `/companies?${params.toString()}`;
+            console.log("Loading URL:", url);
+            
+            // Redirect to the filtered page
+            window.location.href = url;
+        }
+        
+        // Fix for risk filter buttons
+        function initRiskFilterButtons() {
+            console.log("Initializing risk filter buttons");
+            
+            const riskFilters = document.querySelectorAll('input[name="risk-filter"]');
+            if (riskFilters.length > 0) {
+                riskFilters.forEach(radio => {
+                    radio.addEventListener('change', function() {
+                        console.log(`Risk filter changed to: ${this.value}`);
+                        filterCompaniesByRisk(this.value);
+                    });
+                });
+                
+                // Also add click handlers for the labels to ensure the clicks work
+                document.querySelectorAll('.risk-filter-radio').forEach(label => {
+                    label.addEventListener('click', function(e) {
+                        // Only process if the click was on the span, not the input
+                        if (e.target.tagName.toLowerCase() === 'span') {
+                            // Find the input within this label
+                            const input = this.querySelector('input[name="risk-filter"]');
+                            if (input && !input.checked) {
+                                input.checked = true;
+                                
+                                // Manually trigger change event
+                                const event = new Event('change');
+                                input.dispatchEvent(event);
+                            }
+                        }
+                    });
+                });
+                
+                console.log("Risk filter buttons initialized");
+            } else {
+                console.log("No risk filter buttons found");
+            }
+        }
+        
+        // Initialize risk filter buttons
+        initRiskFilterButtons();
+
+        // Add custom functions for alert and report submissions
+        function submitAlert() {
+            // Get form data
+            const form = document.getElementById('alertForm');
+            const formData = new FormData(form);
+            
+            // Add validation here if needed
+            
+            fetch('/api/set_alert', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close modal
+                    closeDetailModal('alertModal');
+                    
+                    // Show success notification
+                    showNotification(data.message, 'success');
+                } else {
+                    // Show error notification
+                    showNotification(data.message || 'Error setting alert', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred while setting the alert', 'error');
+            });
+        }
+        
+        function submitReport() {
+            // Get form data
+            const form = document.getElementById('reportForm');
+            const formData = new FormData(form);
+            
+            // Add validation here if needed
+            
+            fetch('/api/generate_report', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close modal
+                    closeDetailModal('reportModal');
+                    
+                    // Show success notification
+                    showNotification(data.message, 'success');
+                    
+                    // If download is requested, trigger download
+                    if (data.download_url && document.getElementById('deliveryDownload').checked) {
+                        window.location.href = data.download_url;
+                    }
+                } else {
+                    // Show error notification
+                    showNotification(data.message || 'Error generating report', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred while generating the report', 'error');
+            });
+        }
+        
+        function showNotification(message, type = 'success') {
+            const container = document.getElementById('notification-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.innerHTML = `
+                ${message}
+                <button class="close-btn" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(alert);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alert.parentElement) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+    </script>
 </body>
 </html> 
