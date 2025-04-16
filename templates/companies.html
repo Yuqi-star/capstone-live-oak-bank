@@ -119,7 +119,7 @@
                                 <th data-sort="current_ratio" class="sortable">Current Ratio <i class="fas fa-sort"></i></th>
                                 <th data-sort="roe" class="sortable">ROE <i class="fas fa-sort"></i></th>
                                 <th data-sort="leverage_ratio" class="sortable">Leverage Ratio <i class="fas fa-sort"></i></th>
-                                <th data-sort="coverage_ratio" class="sortable">Coverage Ratio <i class="fas fa-sort"></i></th>
+                                <th data-sort="coverage_ratio" class="sortable">Debt Service Coverage Ratio <i class="fas fa-sort"></i></th>
                                 <th data-sort="risk_level" class="sortable">Risk Level <i class="fas fa-sort"></i></th>
                                 <th>Actions</th>
                             </tr>
@@ -136,7 +136,7 @@
                                     {{ "%.2f"|format(company.ROE * 100) }}%
                                 </td>
                                 <td class="leverage-ratio">{{ "%.2f"|format(company['Leverage Ratio']) }}</td>
-                                <td class="coverage-ratio">{{ "%.2f"|format(company['Financial Coverage Ratio']) }}x</td>
+                                <td class="coverage-ratio">{{ "%.2f"|format(company['Debt Service Coverage Ratio']) }}x</td>
                                 <td class="risk-level">
                                     <span class="risk-badge {{ company.risk_level }}">
                                         {{ company.risk_level|capitalize }}
@@ -171,7 +171,10 @@
     <div id="company-detail-{{ loop.index }}" class="modal">
         <div class="modal-content">
             <div class="modal-header {{ company.risk_level }}-risk">
-                <h2 id="modalCompanyName">{{ company.Company }}</h2>
+                <div class="company-header-info">
+                    <h2 id="modalCompanyName">{{ company.Company }}</h2>
+                    <span class="company-industry-badge">{{ company.Industry }}</span>
+                </div>
                 <span class="close-modal" onclick="closeDetailModal('company-detail-{{ loop.index }}')">&times;</span>
             </div>
             <div class="modal-body">
@@ -199,6 +202,10 @@
                                 <h4>Rating Change Probability</h4>
                                 <p class="metric-value">{{ "%.2f"|format(company['Probability of Credit Rating Change'] * 100) }}%</p>
                             </div>
+                            <div class="metric-card">
+                                <h4>Credit Rating</h4>
+                                <p class="metric-value credit-rating-badge">{{ company['Credit Rating'] }}</p>
+                            </div>
                         </div>
                     </div>
                     
@@ -222,9 +229,46 @@
                                 <p class="metric-value">{{ "%.2f"|format(company['Leverage Ratio']) }}</p>
                             </div>
                             <div class="metric-card">
-                                <h4>Coverage Ratio</h4>
-                                <p class="metric-value">{{ "%.2f"|format(company['Financial Coverage Ratio']) }}x</p>
+                                <h4>Debt Service Coverage Ratio</h4>
+                                <p class="metric-value">{{ "%.2f"|format(company['Debt Service Coverage Ratio']) }}x</p>
                             </div>
+                            <div class="metric-card">
+                                <h4>Loan Amount</h4>
+                                <p class="metric-value">${{ "{:,.2f}".format(company['Loan Amount']) }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- DSCR Analysis Section -->
+                    <div class="dscr-analysis">
+                        <h3><i class="fas fa-chart-bar"></i> Debt Service Coverage Ratio Analysis</h3>
+                        <div class="dscr-metrics">
+                            <div class="metric-card">
+                                <h4>Current DSCR</h4>
+                                <p class="metric-value dscr-value">... Loading ...</p>
+                            </div>
+                            <div class="metric-card">
+                                <h4>Industry Average</h4>
+                                <p class="metric-value dscr-industry-avg">... Loading ...</p>
+                            </div>
+                            <div class="metric-card">
+                                <h4>Interest Rate</h4>
+                                <p class="metric-value current-interest-rate">... Loading ...</p>
+                            </div>
+                            <div class="metric-card">
+                                <h4>Projected DSCR (Rate +2%)</h4>
+                                <p class="metric-value dscr-projected">... Loading ...</p>
+                            </div>
+                        </div>
+                        
+                        <div class="dscr-visualization">
+                            <h4>DSCR Comparison</h4>
+                            <div id="dscr-chart-{{ loop.index }}" class="dscr-chart"></div>
+                        </div>
+                        
+                        <div class="dscr-analysis-text">
+                            <h4>DSCR Analysis</h4>
+                            <div id="dscr-analysis-{{ loop.index }}" class="dscr-text">... Analyzing DSCR ...</div>
                         </div>
                     </div>
                 </div>
@@ -307,11 +351,11 @@
             </div>
             <div class="modal-footer">
                 <div class="external-links">
-                    <button class="modal-btn secondary" onclick="closeDetailModal('alertModal')">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
                     <button class="modal-btn primary" onclick="submitAlert(); return false;">
                         <i class="fas fa-bell"></i> Set Alert
+                    </button>
+                    <button class="modal-btn secondary" onclick="closeDetailModal('alertModal')">
+                        <i class="fas fa-times"></i> Cancel
                     </button>
                 </div>
             </div>
@@ -320,17 +364,40 @@
 
     <!-- Report Modal -->
     <div id="reportModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Generate Report for <span class="company-name"></span></h2>
+        <div class="modal-content custom-modal">
+            <div class="custom-modal-header">
+                <div class="modal-title-wrapper">
+                    <i class="fas fa-file-alt modal-icon"></i>
+                    <h2>Generate Report for <span class="company-name"></span></h2>
+                </div>
                 <button class="close-modal" onclick="closeDetailModal('reportModal')">&times;</button>
             </div>
-            <div class="modal-body">
-                <p class="modal-description">Create a detailed credit risk report with the sections and frequency you need.</p>
+            <div class="custom-modal-body">
+                <p class="modal-description">
+                    <i class="fas fa-info-circle"></i>
+                    Create a comprehensive analysis report with your preferred sections and delivery options.
+                </p>
                 <form id="reportForm">
                     <input type="hidden" id="reportCompanyName" name="company_name">
+                    
+                    <!-- Report Template Selection -->
                     <div class="form-group mb-3">
-                        <label class="form-label"><i class="fas fa-list-alt"></i> Report Sections</label>
+                        <label class="form-label">
+                            <i class="fas fa-file-alt"></i> Report Template
+                        </label>
+                        <select class="custom-select" name="template" id="reportTemplate">
+                            <option value="standard">Standard Report</option>
+                            <option value="executive">Executive Summary</option>
+                            <option value="detailed">Detailed Analysis</option>
+                            <option value="custom">Custom Report</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Report Sections -->
+                    <div class="form-group mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-list-alt"></i> Report Sections
+                        </label>
                         <div class="report-section-options">
                             <div class="custom-checkbox">
                                 <input type="checkbox" name="sections" value="company_info" checked id="sectionCompanyInfo">
@@ -345,30 +412,37 @@
                                 </label>
                             </div>
                             <div class="custom-checkbox">
-                                <input type="checkbox" name="sections" value="financial_metrics" checked id="sectionFinancial">
-                                <label for="sectionFinancial">
-                                    <i class="fas fa-chart-pie"></i> Financial Metrics
+                                <input type="checkbox" name="sections" value="financial_metrics" checked id="sectionFinancials">
+                                <label for="sectionFinancials">
+                                    <i class="fas fa-chart-line"></i> Financial Metrics
                                 </label>
                             </div>
                             <div class="custom-checkbox">
                                 <input type="checkbox" name="sections" value="historical_data" id="sectionHistorical">
                                 <label for="sectionHistorical">
-                                    <i class="fas fa-chart-line"></i> Historical Performance
+                                    <i class="fas fa-history"></i> Historical Data
+                                </label>
+                            </div>
+                            <div class="custom-checkbox">
+                                <input type="checkbox" name="sections" value="industry_comparison" id="sectionIndustry">
+                                <label for="sectionIndustry">
+                                    <i class="fas fa-industry"></i> Industry Comparison
+                                </label>
+                            </div>
+                            <div class="custom-checkbox">
+                                <input type="checkbox" name="sections" value="recommendations" id="sectionRecommendations">
+                                <label for="sectionRecommendations">
+                                    <i class="fas fa-lightbulb"></i> Recommendations
                                 </label>
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Delivery Method -->
                     <div class="form-group mb-3">
-                        <label class="form-label"><i class="fas fa-calendar-alt"></i> Report Schedule</label>
-                        <select class="custom-select" name="schedule">
-                            <option value="once">One-time</option>
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
-                        </select>
-                    </div>
-                    <div class="form-group mb-3">
-                        <label class="form-label"><i class="fas fa-paper-plane"></i> Delivery Method</label>
+                        <label class="form-label">
+                            <i class="fas fa-paper-plane"></i> Delivery Method
+                        </label>
                         <div class="delivery-options">
                             <div class="custom-checkbox">
                                 <input type="checkbox" name="delivery_email" id="deliveryEmail">
@@ -382,23 +456,43 @@
                                     <i class="fas fa-download"></i> Download
                                 </label>
                             </div>
+                            <div class="custom-checkbox">
+                                <input type="checkbox" name="delivery_dashboard" id="deliveryDashboard">
+                                <label for="deliveryDashboard">
+                                    <i class="fas fa-desktop"></i> Save to Dashboard
+                                </label>
+                            </div>
                         </div>
                     </div>
+                    
+                    <!-- Email Field -->
                     <div id="reportEmailField" class="form-group mb-3" style="display: none;">
-                        <label class="form-label"><i class="fas fa-at"></i> Email Address</label>
-                        <input type="email" class="custom-input" name="email" value="{{ user_email if user_email }}">
+                        <label class="form-label">
+                            <i class="fas fa-at"></i> Email Address
+                        </label>
+                        <input type="email" class="custom-input" name="email" value="{{ user_email if user_email }}" placeholder="Enter your email address">
+                    </div>
+                    
+                    <!-- Report Format -->
+                    <div class="form-group mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-file"></i> Report Format
+                        </label>
+                        <select class="custom-select" name="format">
+                            <option value="pdf" selected>PDF Document (Professional Quality)</option>
+                            <option value="excel">Excel Spreadsheet</option>
+                            <option value="html">HTML Report</option>
+                        </select>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <div class="external-links">
-                    <button class="modal-btn secondary" onclick="closeDetailModal('reportModal')">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
-                    <button class="modal-btn primary" onclick="submitReport(); return false;">
-                        <i class="fas fa-file-pdf"></i> Generate Report
-                    </button>
-                </div>
+            <div class="custom-modal-footer">
+                <button class="modal-btn primary" onclick="submitReport(); return false;">
+                    <i class="fas fa-file-pdf"></i> Generate Report
+                </button>
+                <button class="modal-btn secondary" onclick="closeDetailModal('reportModal')">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
             </div>
         </div>
     </div>
@@ -450,6 +544,12 @@
                 const modalId = `company-detail-${companyIndex}`;
                 document.getElementById(modalId).style.display = 'block';
                 document.body.classList.add('modal-open');
+                
+                // Initialize DSCR analysis for this company
+                const companyData = companyList[companyIndex - 1];
+                setTimeout(() => {
+                    updateDSCRAnalysis(companyIndex, companyData);
+                }, 100);
             }
         }
         
@@ -477,7 +577,7 @@
             // Set default checked state for sections
             document.getElementById('sectionCompanyInfo').checked = true;
             document.getElementById('sectionRiskProfile').checked = true;
-            document.getElementById('sectionFinancial').checked = true;
+            document.getElementById('sectionFinancials').checked = true;
             document.getElementById('deliveryDownload').checked = true;
             document.getElementById('reportEmailField').style.display = 'none';
             

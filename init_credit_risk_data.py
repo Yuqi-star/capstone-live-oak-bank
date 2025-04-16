@@ -24,7 +24,7 @@ def init_credit_risk_data():
         "Leverage Ratio" REAL,
         "Credit VaR" REAL,
         "Loan Amount" REAL,
-        "Financial Coverage Ratio" REAL,
+        "Debt Service Coverage Ratio" REAL,
         "Probability of Credit Rating Change" REAL,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
@@ -71,8 +71,8 @@ def init_credit_risk_data():
                 leverage_ratio = round(random.uniform(0.2, 0.8), 2)
                 credit_var = round(random.uniform(0.05, 0.20), 4)
                 
-                # Calculate Financial Coverage Ratio based on company's risk profile
-                # Better credit ratings typically have higher coverage ratios
+                # Calculate Debt Service Coverage Ratio based on company's risk profile
+                # Better credit ratings typically have higher debt service coverage ratios
                 base_coverage = (len(credit_ratings) - credit_ratings.index(credit_rating)) / len(credit_ratings)
                 financial_coverage = round(
                     (base_coverage * 5 + 1) *  # Base range of 1-6x
@@ -82,7 +82,7 @@ def init_credit_risk_data():
                     2
                 )
                 
-                # Ensure Financial Coverage Ratio is more noticeable
+                # Ensure Debt Service Coverage Ratio is more noticeable
                 if credit_rating in ['AAA', 'AA+', 'AA']:
                     financial_coverage = max(financial_coverage, 3.0)  # Ensure high ratings have high coverage
                 elif credit_rating in ['CCC+', 'CCC', 'CCC-']:
@@ -94,7 +94,7 @@ def init_credit_risk_data():
                      abs(leverage_ratio - 0.5) / 0.5 * 0.3 +  # Further from ideal leverage (0.5) increases probability
                      (0.1 - roa if roa < 0.1 else 0) * 2 +    # Lower ROA increases probability
                      (0.15 - roe if roe < 0.15 else 0) * 2 +  # Lower ROE increases probability
-                     (2 - financial_coverage if financial_coverage < 2 else 0) * 0.3  # Lower coverage ratio increases probability
+                     (2 - financial_coverage if financial_coverage < 2 else 0) * 0.3  # Lower debt service coverage ratio increases probability
                     ) * random.uniform(0.8, 1.2),  # Add some randomness
                     4
                 )
@@ -126,7 +126,7 @@ def init_credit_risk_data():
         Company, Industry, "Sub-Industry", "Credit Rating",
         "Probability of Default", "Loss Given Default", "Expected Loss",
         "Current Ratio", "ROA", "ROE", "Leverage Ratio", "Credit VaR",
-        "Loan Amount", "Financial Coverage Ratio", "Probability of Credit Rating Change",
+        "Loan Amount", "Debt Service Coverage Ratio", "Probability of Credit Rating Change",
         created_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', companies)

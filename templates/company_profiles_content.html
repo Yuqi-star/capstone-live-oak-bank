@@ -29,9 +29,18 @@
                 <p class="company-count">{{ companies|selectattr('industry_category', 'equalto', 'Solar Energy')|list|length }}</p>
             </div>
         </div>
-        <div class="filter-card other-industry" data-industry="Other">
+        <div class="filter-card manufacturing-industry" data-industry="Manufacturing">
             <div class="filter-icon">
                 <i class="fas fa-industry"></i>
+            </div>
+            <div class="filter-info">
+                <h3>Manufacturing</h3>
+                <p class="company-count">{{ companies|selectattr('industry_category', 'equalto', 'Manufacturing')|list|length }}</p>
+            </div>
+        </div>
+        <div class="filter-card other-industry" data-industry="Other">
+            <div class="filter-icon">
+                <i class="fas fa-building"></i>
             </div>
             <div class="filter-info">
                 <h3>Other Industries</h3>
@@ -79,7 +88,7 @@
                     </div>
                 </div>
                 <div class="company-profile-footer">
-                    <button class="view-details-btn" data-company="{{ company['Company Name'] }}">View Details</button>
+                    <button class="view-details-btn" data-company="{{ company['Company Name'] }}"><i class="fas fa-eye"></i> View Details</button>
                 </div>
             </div>
             {% endfor %}
@@ -187,6 +196,11 @@
         const filterCards = document.querySelectorAll('.filter-card');
         filterCards.forEach(card => {
             card.addEventListener('click', function() {
+                // Remove active class from all cards
+                filterCards.forEach(c => c.classList.remove('active'));
+                // Add active class to clicked card
+                this.classList.add('active');
+                
                 const industry = this.getAttribute('data-industry');
                 filterCompaniesByIndustry(industry);
             });
@@ -252,5 +266,10 @@
                 filterCompaniesBySearch(searchQuery);
             }
         });
+        
+        // Filter companies by industry
+        function filterCompaniesByIndustry(industry) {
+            window.location.href = '/company_profiles' + (industry ? '?industry=' + encodeURIComponent(industry) : '');
+        }
     });
 </script> 

@@ -11,6 +11,8 @@ import uuid
 import json
 from dotenv import load_dotenv
 import random
+from report_generator import ReportGenerator
+from celery import Celery
 
 # Get the directory containing this file
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -28,9 +30,21 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['REPORT_DIR'] = REPORT_DIR
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['TEMPLATE_DIR'] = os.path.join(BASE_DIR, 'templates')
+# Add additional configurations for file handling
+app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'uploads')
+app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'xlsx', 'html'}
+# Ensure file download works properly
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 # Create reports directory if it doesn't exist
 os.makedirs(app.config['REPORT_DIR'], exist_ok=True)
+# Create uploads directory if it doesn't exist
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Initialize Celery with Redis
+celery = Celery(app.name, broker='redis://localhost:6379/0', backend='redis://localhost:6379/0')
+celery.conf.update(app.config)
 
 # Initialize database if it doesn't exist
 def init_db():
@@ -78,7 +92,7 @@ def init_db():
         "Leverage Ratio" REAL,
         "Credit VaR" REAL,
         "Loan Amount" REAL,
-        "Financial Coverage Ratio" REAL,
+        "Debt Service Coverage Ratio" REAL,
         "Probability of Credit Rating Change" REAL,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )''')
@@ -342,15 +356,24 @@ def companies():
                 else:  # high risk
                     company_data['Loss Given Default'] = 0.55
                 
-                # Ensure Financial Coverage Ratio is properly formatted
-                if 'Financial Coverage Ratio' in company_data:
-                    company_data['Financial Coverage Ratio'] = float(company_data['Financial Coverage Ratio'])
+                # Ensure Debt Service Coverage Ratio is properly formatted
+                if 'Debt Service Coverage Ratio' in company_data:
+                    company_data['Debt Service Coverage Ratio'] = float(company_data['Debt Service Coverage Ratio'])
                 else:
-                    # Calculate Financial Coverage Ratio if not present
+                    # Calculate Debt Service Coverage Ratio if not present
                     # This is typically EBIT / Interest Expenses, but we'll use a simplified calculation
                     roa = company_data.get('ROA', 0)
                     leverage = company_data.get('Leverage Ratio', 0.5)
-                    company_data['Financial Coverage Ratio'] = round((1 + roa) / (leverage + 0.1), 2)
+                    company_data['Debt Service Coverage Ratio'] = round((1 + roa) / (leverage + 0.1), 2)
+                
+                # Add operating income data for DSCR calculations
+                loan_amount = company_data.get('Loan Amount', 1000000)
+                roa = company_data.get('ROA', 0)
+                company_data['Net Operating Income'] = round(loan_amount * roa * 1.5, 2)
+                
+                # Add total debt service estimate for DSCR calculations
+                leverage = company_data.get('Leverage Ratio', 0.5)
+                company_data['Total Debt Service'] = round(loan_amount * leverage * 0.12, 2)
                 
                 # Recalculate Expected Loss using PD * LGD * Exposure
                 # If Exposure/Loan Amount is not available, use a default value or the existing Expected Loss
@@ -507,8 +530,8 @@ def company_profiles():
     
     username = session['username']
     
-    # Read company data from CSV file
-    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'company_info.csv')
+    # Read company data from CSV file - UPDATED to use company_info_updated.csv
+    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'company_info_updated.csv')
     
     try:
         # Use pandas to read CSV file
@@ -521,12 +544,12 @@ def company_profiles():
             industry = company.get('Industry', '')
             company_name = company.get('Company Name', '')
             
-            # Special handling for JRI company, categorize as Solar Energy's Electrical/Electronic Manufacturing sub-industry
-            if 'JR Industries' in company_name or 'JRI' in company_name:
-                company['industry_category'] = 'Solar Energy'
-                company['industry_color'] = 'solar'
+            # Updated categorization based on new data
+            if 'Electrical/Electronic Manufacturing' in industry:
+                company['industry_category'] = 'Manufacturing'
+                company['industry_color'] = 'manufacturing'
                 company['sub_industry'] = 'Electrical/Electronic Manufacturing'
-            elif '621610' in industry:
+            elif '621610' in industry or 'Home Health Care Services' in industry:
                 company['industry_category'] = 'Healthcare'
                 company['industry_color'] = 'healthcare'
                 company['sub_industry'] = 'Home Health Care Services'
@@ -537,7 +560,7 @@ def company_profiles():
             else:
                 company['industry_category'] = 'Other'
                 company['industry_color'] = 'other'
-                company['sub_industry'] = 'Other'
+                company['sub_industry'] = industry
     except Exception as e:
         print(f"Error reading company profiles: {e}")
         companies_data = []
@@ -679,214 +702,315 @@ def set_alert():
         traceback.print_exc()
         return jsonify({"success": False, "message": str(e)}), 500
 
+report_generator = ReportGenerator()
+
 @app.route('/api/generate_report', methods=['POST'])
 def generate_report():
-    """Generate a report for a specific company."""
-    if 'username' not in session:
-        return jsonify({"success": False, "message": "Not logged in"}), 401
-    
     try:
-        # Get request data
-        data = request.json
-        print("Received report data:", data)  # 调试日志
-        
-        company_name = data.get('company_name')
-        sections = data.get('sections', [])
-        schedule = data.get('schedule', 'once')  # once, daily, weekly, monthly
-        delivery_email = data.get('delivery_email', False)
-        delivery_download = data.get('delivery_download', True)
-        email = data.get('email')
-        
-        # Validate required fields
+        company_name = request.form.get('company_name')
         if not company_name:
-            return jsonify({"success": False, "message": "Company name is required"}), 400
-        
-        if not sections:
-            return jsonify({"success": False, "message": "At least one report section is required"}), 400
-        
-        # Validate email if selected
-        if delivery_email and not email:
-            return jsonify({"success": False, "message": "Email address is required for email delivery"}), 400
-        
-        # Get user ID for record-keeping
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        c.execute("SELECT id FROM users WHERE username = ?", (session['username'],))
-        user_result = c.fetchone()
-        if not user_result:
-            conn.close()
-            return jsonify({"success": False, "message": "User not found"}), 404
+            return jsonify({'success': False, 'message': 'Company name is required'}), 400
             
-        user_id = user_result[0]
-        conn.close()
+        # Get report parameters
+        template = request.form.get('template', 'detailed')  # Default to detailed report
+        sections = request.form.getlist('sections')
+        format_type = request.form.get('format', 'pdf')  # Default to PDF
         
-        # Create reports table if it doesn't exist
+        # Debug info
+        print(f"Generating {format_type} report for company: {company_name}")
+        print(f"Template: {template}")
+        print(f"Sections: {sections}")
+        
+        # Get company data
         conn = sqlite3.connect(CREDIT_RISK_DB_PATH)
-        c = conn.cursor()
-        c.execute('''
-        CREATE TABLE IF NOT EXISTS reports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            company_name TEXT NOT NULL,
-            sections TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            report_path TEXT
-        )
-        ''')
-        conn.commit()
+        cursor = conn.cursor()
         
-        # If schedule is not 'once', create a scheduled report record
-        if schedule != 'once':
-            c.execute('''
-            CREATE TABLE IF NOT EXISTS scheduled_reports (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                company_name TEXT NOT NULL,
-                sections TEXT NOT NULL,
-                schedule TEXT NOT NULL,
-                delivery_email BOOLEAN,
-                delivery_download BOOLEAN,
-                email TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_run TIMESTAMP
-            )
-            ''')
+        # Get company data from credit_risk table
+        cursor.execute('''
+            SELECT * FROM credit_risk 
+            WHERE Company = ?
+        ''', (company_name,))
+        
+        columns = [desc[0] for desc in cursor.description]
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({'success': False, 'message': 'Company not found'}), 404
             
-            # Insert scheduled report
-            c.execute('''
-            INSERT INTO scheduled_reports 
-            (user_id, company_name, sections, schedule, delivery_email, delivery_download, email)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                user_id, company_name, json.dumps(sections), schedule, 
-                delivery_email, delivery_download, email
-            ))
-            conn.commit()
+        # Create data dictionary
+        company_data = dict(zip(columns, row))
+        
+        # Calculate risk level based on Probability of Default
+        pd = company_data.get('Probability of Default', 0)
+        if pd < 0.01:
+            risk_level = 'Low'
+        elif pd < 0.05:
+            risk_level = 'Medium'
+        else:
+            risk_level = 'High'
+        
+        # Prepare report data
+        report_data = {
+            'company_name': company_name,
+            'sections': []
+        }
+        
+        # Add sections based on template
+        if template == 'standard':
+            sections = ['company_info', 'risk_profile', 'financial_metrics', 'dscr_analysis']
+        elif template == 'executive':
+            sections = ['company_info', 'risk_profile', 'recommendations']
+        elif template == 'detailed':
+            sections = [
+                'company_info',
+                'risk_profile',
+                'financial_metrics',
+                'dscr_analysis',
+                'recommendations'
+            ]
             
-            # Schedule the report using Celery in a production environment
-            try:
-                from tasks import schedule_recurring_report
-                schedule_recurring_report.delay(c.lastrowid)
-                print(f"Scheduled report: {company_name} - {sections} - {schedule}")
-            except Exception as e:
-                print(f"Error scheduling report: {e}")
-                # Non-critical error, we can continue
+        print(f"Final sections to include: {sections}")
         
-        # Generate the report using tasks.py functionality
-        from tasks import generate_company_report, create_pdf_report
-        
-        # Generate report data
-        generated_report = generate_company_report(company_name, sections, schedule)
-        if not generated_report:
-            return jsonify({"success": False, "message": f"Could not generate report for {company_name}"}), 500
-            
-        report_id = generated_report['report_id']
-        report_data = generated_report['report_data']
-        
-        # Insert report record
-        c.execute('''
-        INSERT INTO reports
-        (user_id, company_name, sections, report_path)
-        VALUES (?, ?, ?, ?)
-        ''', (
-            user_id, company_name, json.dumps(sections), f"report_{report_id}.pdf"
-        ))
-        
-        conn.commit()
-        conn.close()
-        
-        # Create report PDF
-        os.makedirs(app.config['REPORT_DIR'], exist_ok=True)
-        report_filename = f"report_{report_id}.pdf"
-        report_path = os.path.join(app.config['REPORT_DIR'], report_filename)
-        
-        # Create the PDF using the reportlab functionality in tasks.py
-        pdf_result = create_pdf_report(report_data, report_path)
-        if not pdf_result:
-            return jsonify({"success": False, "message": "Error creating PDF report"}), 500
-        
-        # If delivery email is requested, send it
-        if delivery_email and email:
-            try:
-                from tasks import send_report_email
-                send_report_email.delay(email, report_path, company_name)
-                print(f"Report email scheduled to be sent to: {email}")
-            except Exception as e:
-                print(f"Error scheduling email: {e}")
-                # Non-critical error, we can continue
-        
-        # Return success with download URL if needed
-        download_url = url_for('download_report', report_id=report_id) if delivery_download else None
-        
-        return jsonify({
-            "success": True, 
-            "report_id": report_id,
-            "download_url": download_url
-        })
-    except Exception as e:
-        print(f"Error generating report: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "message": str(e)}), 500
-
-@app.route('/download_report/<report_id>')
-def download_report(report_id):
-    try:
-        # Check if logged in
-        if 'username' not in session:
-            return redirect(url_for('login'))
-            
-        # Check if report exists
-        report_path = os.path.join(app.config['REPORT_DIR'], f"report_{report_id}.pdf")
-        
-        print(f"Looking for report at: {report_path}")
-        
-        if not os.path.exists(report_path):
-            print(f"Report file does not exist: {report_path}")
-            # Create dummy report for testing if it doesn't exist
-            from tasks import create_pdf_report
-            
-            # Generate a dummy report
-            dummy_report = {
-                'company_name': 'Test Company',
-                'generated_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'schedule': 'once',
-                'sections': {
-                    'company_info': {
-                        'title': 'Company Information',
-                        'data': {'Company': 'Test Company', 'Industry': 'Testing'}
-                    },
-                    'risk_profile': {
-                        'title': 'Risk Profile',
-                        'data': {'PD': 0.02, 'Expected_Loss': 10000}
-                    }
+        # Add sections to report data
+        for section in sections:
+            if section == 'company_info':
+                # Get location data
+                location = {
+                    'County': company_data.get('County', 'N/A'),
+                    'State': company_data.get('State', 'N/A')
                 }
-            }
+                
+                report_data['sections'].append({
+                    'title': 'Company Information',
+                    'section_type': 'company_info',
+                    'data': {
+                        'Name': company_name,
+                        'Industry': company_data.get('Industry', 'N/A'),
+                        'Sub-Industry': company_data.get('Sub-Industry', 'N/A'),
+                        'Location': f"{location['County']}, {location['State']}" if location['County'] != 'N/A' else 'N/A'
+                    }
+                })
+            elif section == 'risk_profile':
+                report_data['sections'].append({
+                    'title': 'Risk Profile',
+                    'section_type': 'risk_profile',
+                    'data': {
+                        'Credit Rating': company_data.get('Credit Rating', 'N/A'),
+                        'Risk Level': risk_level,
+                        'Probability of Default': f"{float(company_data.get('Probability of Default', 0)) * 100:.2f}%",
+                        'Loss Given Default': f"{float(company_data.get('Loss Given Default', 0)) * 100:.2f}%",
+                        'Expected Loss': f"${float(company_data.get('Expected Loss', 0)):,.2f}"
+                    }
+                })
+            elif section == 'financial_metrics':
+                # Convert all financial metrics to the proper format
+                current_ratio = float(company_data.get('Current Ratio', 0))
+                roa = float(company_data.get('ROA', 0)) * 100
+                roe = float(company_data.get('ROE', 0)) * 100
+                leverage_ratio = float(company_data.get('Leverage Ratio', 0))
+                dscr = float(company_data.get('Debt Service Coverage Ratio', 0))
+                total_assets = float(company_data.get('Total Assets', 0))
+                total_revenue = float(company_data.get('Total Revenue', 0))
+                gross_profit_margin = float(company_data.get('Gross Profit Margin', 0)) * 100
+                
+                report_data['sections'].append({
+                    'title': 'Financial Metrics',
+                    'section_type': 'financial_metrics',
+                    'data': {
+                        'Current Ratio': f"{current_ratio:.2f}",
+                        'ROA': f"{roa:.2f}%",
+                        'ROE': f"{roe:.2f}%",
+                        'Leverage Ratio': f"{leverage_ratio:.2f}",
+                        'Debt Service Coverage Ratio': f"{dscr:.2f}",
+                        'Total Assets': f"${total_assets:,.2f}",
+                        'Total Revenue': f"${total_revenue:,.2f}",
+                        'Gross Profit Margin': f"{gross_profit_margin:.2f}%"
+                    }
+                })
+            elif section == 'dscr_analysis':
+                # Add DSCR analysis section
+                report_data['sections'].append({
+                    'title': 'DSCR Analysis',
+                    'section_type': 'dscr_analysis',
+                    'data': {
+                        'Debt Service Coverage Ratio': f"{dscr:.2f}",
+                        'Net Operating Income': f"${float(company_data.get('Net Operating Income', 0)):,.2f}",
+                        'Total Debt Service': f"${float(company_data.get('Total Debt Service', 0)):,.2f}"
+                    }
+                })
+            elif section == 'recommendations':
+                # Generate recommendations based on actual financial data
+                dscr_rec = ""
+                if dscr < 1.0:
+                    dscr_rec = "The DSCR is below 1.0, indicating potential difficulty in servicing debt. Consider debt restructuring options."
+                elif dscr < 1.25:
+                    dscr_rec = "The DSCR is adequate but could be improved. Monitor cash flow closely."
+                else:
+                    dscr_rec = "The DSCR is strong, indicating good debt servicing capacity."
+                
+                leverage_rec = ""
+                if leverage_ratio > 3.0:
+                    leverage_rec = "The leverage ratio is relatively high. Consider strategies to reduce debt or increase equity."
+                elif leverage_ratio > 2.0:
+                    leverage_rec = "The leverage ratio is moderate. Monitor this metric to ensure it doesn't increase significantly."
+                else:
+                    leverage_rec = "The leverage ratio is conservative, providing good financial flexibility."
+                
+                report_data['sections'].append({
+                    'title': 'Recommendations & Action Items',
+                    'section_type': 'recommendations',
+                    'data': f"""Based on our comprehensive analysis of {company_name}, we recommend the following actions:
+
+1. {'Continue monitoring financial health, no immediate concerns.' if risk_level == 'Low' else 'Increase monitoring frequency and consider requesting additional financial statements.' if risk_level == 'Medium' else 'Schedule detailed review with the client to discuss mitigation strategies for their elevated risk profile.'}
+
+2. {dscr_rec}
+
+3. {leverage_rec}
+
+4. {'Consider opportunities for expanding the relationship with this strong performer.' if risk_level == 'Low' else 'Maintain relationship while assessing opportunities to improve financial indicators.' if risk_level == 'Medium' else 'Evaluate overall exposure and develop contingency plans.'}
+
+This assessment was prepared by Live Oak Bank's Risk Analysis Department on {datetime.now().strftime('%Y-%m-%d')}.
+"""
+                })
+        
+        # Create absolute path for report directory
+        absolute_report_dir = os.path.abspath(app.config['REPORT_DIR'])
+        print(f"Absolute report directory path: {absolute_report_dir}")
+        
+        # Generate timestamp for unique filename
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        safe_company_name = ''.join(c if c.isalnum() else '_' for c in company_name)
+        filename = f"{safe_company_name}_{timestamp}.{format_type}"
+        
+        # Ensure report directory exists
+        os.makedirs(absolute_report_dir, exist_ok=True)
+        print(f"Report directory exists: {os.path.exists(absolute_report_dir)}")
+        
+        # Generate temporary file path just for logging
+        temp_filepath = os.path.join(absolute_report_dir, filename)
+        print(f"Will generate report at: {temp_filepath}")
+        
+        try:
+            # Generate report using the appropriate format
+            report_generator = ReportGenerator(template_dir=app.config['TEMPLATE_DIR'], output_dir=absolute_report_dir)
             
-            # Make sure the reports directory exists
-            os.makedirs(app.config['REPORT_DIR'], exist_ok=True)
+            if format_type.lower() == 'pdf':
+                filepath = report_generator._generate_pdf_report(report_data, {}, absolute_report_dir)
+                print(f"PDF report generated at: {filepath}")
+            elif format_type.lower() == 'excel':
+                filepath = report_generator._generate_excel_report(report_data, {}, absolute_report_dir)
+                print(f"Excel report generated at: {filepath}")
+            else:  # html or other formats
+                filepath = report_generator.generate_report(company_name, report_data)
+                print(f"HTML report generated at: {filepath}")
             
-            # Create the PDF
-            create_pdf_report(dummy_report, report_path)
-            print(f"Created dummy report at: {report_path}")
+            # Safety checks
+            if not filepath:
+                print("Error: filepath is None or empty")
+                return jsonify({'success': False, 'message': 'Failed to generate report (no filepath returned)'}), 500
+                
+            # Extract just the filename from the full path
+            if os.path.exists(filepath):
+                print(f"File successfully created at {filepath}")
+                filename = os.path.basename(filepath)
+                print(f"Report filename: {filename}")
+                file_size = os.path.getsize(filepath)
+                print(f"File size: {file_size} bytes")
+                
+                # Return success response with download URL
+                download_url = url_for('download_report', filename=filename)
+                print(f"Download URL: {download_url}")
+                return jsonify({
+                    'success': True,
+                    'message': 'Report generated successfully',
+                    'download_url': download_url,
+                    'filepath': filepath,  # For debugging
+                    'file_exists': os.path.exists(filepath)  # For debugging
+                })
+            else:
+                print(f"Error: Generated file does not exist at {filepath}")
+                return jsonify({
+                    'success': False, 
+                    'message': f'Failed to generate report file. File not found at {filepath}'
+                }), 500
             
-            if not os.path.exists(report_path):
-                print("Failed to create dummy report")
-                return jsonify({'success': False, 'message': 'Report not found and could not create dummy report'}), 404
-            
-        # Send file for download
-        print(f"Sending file: {report_path}")
-        return send_file(
-            report_path,
-            as_attachment=True,
-            download_name=f"LiveOak_Report_{report_id}.pdf",
-            mimetype='application/pdf'
-        )
+        except Exception as e:
+            print(f"Error in report generation: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'success': False, 'message': f'Error generating report: {str(e)}'}), 500
     except Exception as e:
-        print(f"Error downloading report: {e}")
+        print(f"Error generating report: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': f'Error generating report: {str(e)}'}), 500
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+@app.route('/api/download_report/<filename>')
+def download_report(filename):
+    try:
+        # Make sure the report directory exists and use absolute path
+        report_dir = os.path.abspath(app.config['REPORT_DIR'])
+        if not os.path.exists(report_dir):
+            os.makedirs(report_dir, exist_ok=True)
+            
+        # Full path to the file
+        filepath = os.path.join(report_dir, filename)
+        print(f"Attempting to download file from: {filepath}")
+            
+        # Check if the file exists
+        if not os.path.exists(filepath):
+            print(f"Error: File not found at {filepath}")
+            return jsonify({
+                'success': False,
+                'message': f'Report file not found at {filepath}'
+            }), 404
+            
+        # Get file size and last modified time for debugging
+        file_size = os.path.getsize(filepath)
+        last_modified = os.path.getmtime(filepath)
+        print(f"File exists: Size={file_size} bytes, Last Modified={datetime.fromtimestamp(last_modified)}")
+        
+        # Determine mime type based on file extension
+        mime_type = 'application/octet-stream'  # Default
+        if filename.lower().endswith('.pdf'):
+            mime_type = 'application/pdf'
+        elif filename.lower().endswith('.xlsx'):
+            mime_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        elif filename.lower().endswith('.html'):
+            mime_type = 'text/html'
+            
+        print(f"Using MIME type: {mime_type}")
+        
+        # Enhanced direct file serving with specific cache settings
+        response = send_file(
+            filepath,
+            mimetype=mime_type,
+            as_attachment=True,
+            download_name=filename,
+            etag=True,
+            conditional=False,
+            last_modified=datetime.fromtimestamp(last_modified)
+        )
+        
+        # Add headers to disable caching for better reliability
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        response.headers["Content-Length"] = str(file_size)
+            
+        return response
+            
+    except Exception as e:
+        print(f"Error downloading report: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Error downloading report: {str(e)}'
+        }), 500
 
 @app.route('/api/company_metrics')
 def company_metrics():
@@ -1037,7 +1161,7 @@ def geoheatmap():
     try:
         c.execute("""
             SELECT Company, Industry, "Sub-Industry", "Credit Rating", 
-            "Probability of Default", "Financial Coverage Ratio", 
+            "Probability of Default", "Debt Service Coverage Ratio", 
             "Current Ratio", "ROE", County, State, 
             Revenue, is_client
             FROM credit_risk
@@ -1122,7 +1246,7 @@ def geoheatmap():
             # Calculate total PD, FCR, CR
             pd_total = sum(company.get('Probability of Default', 0) for company in county_data 
                            if company.get('County') == metrics['county'] and company.get('State') == metrics['state'])
-            fcr_total = sum(company.get('Financial Coverage Ratio', 0) for company in county_data 
+            fcr_total = sum(company.get('Debt Service Coverage Ratio', 0) for company in county_data 
                             if company.get('County') == metrics['county'] and company.get('State') == metrics['state'])
             cr_total = sum(company.get('Current Ratio', 0) for company in county_data 
                            if company.get('County') == metrics['county'] and company.get('State') == metrics['state'])
@@ -1193,7 +1317,7 @@ def county_data():
         
         query = """
             SELECT Company, Industry, "Sub-Industry", "Credit Rating", 
-            "Probability of Default", "Financial Coverage Ratio", 
+            "Probability of Default", "Debt Service Coverage Ratio", 
             "Current Ratio", "ROE", County, State, 
             Revenue, is_client
             FROM credit_risk
@@ -1294,7 +1418,7 @@ def county_data():
                 # Calculate total PD, FCR, CR
                 pd_total = sum(company.get('Probability of Default', 0) for company in county_data 
                                if company.get('County') == metrics['county'] and company.get('State') == metrics['state'])
-                fcr_total = sum(company.get('Financial Coverage Ratio', 0) for company in county_data 
+                fcr_total = sum(company.get('Debt Service Coverage Ratio', 0) for company in county_data 
                                 if company.get('County') == metrics['county'] and company.get('State') == metrics['state'])
                 cr_total = sum(company.get('Current Ratio', 0) for company in county_data 
                                if company.get('County') == metrics['county'] and company.get('State') == metrics['state'])
@@ -1404,21 +1528,21 @@ def county_data():
                         # High risk profile metrics
                         avg_revenue = random.uniform(5000000, 35000000)  # Lower revenue
                         avg_pd = random.uniform(0.05, 0.1)  # Higher probability of default
-                        avg_fcr = random.uniform(0.5, 1.5)  # Lower financial coverage ratio
+                        avg_fcr = random.uniform(0.5, 1.5)  # Lower debt service coverage ratio
                         avg_cr = random.uniform(0.5, 1.5)  # Lower current ratio
                     elif medium_risk_count >= high_risk_count and medium_risk_count >= low_risk_count:
                         dominant_risk = 'medium'
                         # Medium risk profile metrics
                         avg_revenue = random.uniform(10000000, 60000000)  # Medium revenue
                         avg_pd = random.uniform(0.01, 0.05)  # Medium probability of default
-                        avg_fcr = random.uniform(1.0, 2.0)  # Medium financial coverage ratio
+                        avg_fcr = random.uniform(1.0, 2.0)  # Medium debt service coverage ratio
                         avg_cr = random.uniform(1.0, 2.0)  # Medium current ratio
                     else:
                         dominant_risk = 'low'
                         # Low risk profile metrics
                         avg_revenue = random.uniform(20000000, 90000000)  # Higher revenue
                         avg_pd = random.uniform(0.001, 0.01)  # Lower probability of default
-                        avg_fcr = random.uniform(1.5, 3.0)  # Higher financial coverage ratio
+                        avg_fcr = random.uniform(1.5, 3.0)  # Higher debt service coverage ratio
                         avg_cr = random.uniform(1.5, 3.0)  # Higher current ratio
                     
                     # Create company objects
@@ -1476,6 +1600,82 @@ def county_data():
 def ping():
     """简单的API端点，用于检查服务器连接状态"""
     return jsonify({"status": "ok", "message": "Server is running"}), 200
+
+@app.route('/generate_test_report')
+def generate_test_report():
+    """Direct endpoint to generate a test report for debugging"""
+    try:
+        # Create a simple test report
+        company_name = "Test Company"
+        report_data = {
+            'company_name': company_name,
+            'sections': [
+                {
+                    'title': 'Company Information',
+                    'section_type': 'company_info',
+                    'data': {
+                        'Name': company_name,
+                        'Industry': 'Testing',
+                        'Sub-Industry': 'Software Testing',
+                        'Location': 'Test County, Test State'
+                    }
+                },
+                {
+                    'title': 'Risk Profile',
+                    'section_type': 'risk_profile',
+                    'data': {
+                        'Credit Rating': 'A',
+                        'Risk Level': 'Low',
+                        'Probability of Default': '0.50%',
+                        'Loss Given Default': '20.00%',
+                        'Expected Loss': '$1,000.00'
+                    }
+                },
+                {
+                    'title': 'Recommendations',
+                    'section_type': 'recommendations',
+                    'data': 'This is a test recommendation for the company.'
+                }
+            ]
+        }
+        
+        # Create absolute path for report directory
+        absolute_report_dir = os.path.abspath(app.config['REPORT_DIR'])
+        print(f"Report directory: {absolute_report_dir}")
+        
+        # Make sure it exists
+        os.makedirs(absolute_report_dir, exist_ok=True)
+        
+        # Generate report
+        report_generator = ReportGenerator(template_dir=app.config['TEMPLATE_DIR'], output_dir=absolute_report_dir)
+        filepath = report_generator._generate_pdf_report(report_data, {}, absolute_report_dir)
+        
+        # Check if file was created
+        if os.path.exists(filepath):
+            print(f"Test report created at: {filepath}")
+            filename = os.path.basename(filepath)
+            
+            # Try to send the file directly
+            return send_file(
+                filepath,
+                as_attachment=True,
+                download_name=filename,
+                mimetype='application/pdf'
+            )
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'Failed to generate test report at {filepath}'
+            }), 500
+            
+    except Exception as e:
+        print(f"Error generating test report: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Error generating test report: {str(e)}'
+        }), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

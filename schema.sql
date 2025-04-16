@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS credit_risk (
     "Leverage Ratio" REAL,
     "Credit VaR" REAL,
     "Loan Amount" REAL,
-    "Financial Coverage Ratio" REAL,
+    "Debt Service Coverage Ratio" REAL,
     "Probability of Credit Rating Change" REAL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
